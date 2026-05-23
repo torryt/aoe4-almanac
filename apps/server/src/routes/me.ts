@@ -7,6 +7,10 @@ import { db } from "../db/client.ts";
 import { users } from "../db/schema.ts";
 import { log, logError } from "../log.ts";
 import {
+  getLeaderboardPage,
+  getPlayer,
+} from "../services/aoe4world.ts";
+import {
   countUserGameData,
   linkProfileAndBackfill,
   runSync,
@@ -72,6 +76,105 @@ meRoutes.delete("/link-aoe4world", (c) => {
     `unlink.wiped user=${userId} games=${wiped.games} game_notes=${wiped.game_notes} sync_rows=${wiped.sync_state_rows}`,
   );
   return c.json({ ok: true, wiped });
+});
+
+type RatingInfoCacheEntry = {
+  at: number;
+  data: unknown;
+};
+const ratingInfoCache = new Map<string, RatingInfoCacheEntry>();
+const RATING_INFO_TTL_MS = 60_000;
+
+meRoutes.get("/rating-info", async (c) => {
+  const userId = c.get("userId");
+  const reqId = c.get("reqId");
+  const leaderboard = c.req.query("leaderboard") || "rm_solo";
+
+  const row = db()
+    .select({ profileId: users.aoe4worldProfileId })
+    .from(users)
+    .where(eq(users.id, userId))
+    .get();
+  const profileId = row?.profileId;
+  if (!profileId) return c.json({ error: "not linked" }, 404);
+
+  const cacheKey = `${userId}:${leaderboard}`;
+  const cached = ratingInfoCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < RATING_INFO_TTL_MS) {
+    return c.json(cached.data);
+  }
+
+  try {
+    const player = await getPlayer(profileId);
+    const mode = player.modes?.[leaderboard];
+    if (!mode) {
+      const payload = {
+        leaderboard,
+        country: player.country ?? null,
+        unranked: true,
+      };
+      ratingInfoCache.set(cacheKey, { at: Date.now(), data: payload });
+      return c.json(payload);
+    }
+
+    // Get global total
+    let rankTotal: number | null = null;
+    try {
+      const lb = await getLeaderboardPage(leaderboard, { page: 1 });
+      rankTotal = lb.total_count;
+    } catch (e) {
+      logError(reqId, "leaderboard total fetch failed:", e);
+    }
+
+    // Country rank: paginate country-filtered leaderboard until we find profile
+    let countryRank: number | null = null;
+    let countryTotal: number | null = null;
+    const country = player.country ?? null;
+    if (country && mode.rating != null) {
+      try {
+        const MAX_PAGES = 20; // up to 1000 players in their country
+        for (let page = 1; page <= MAX_PAGES; page++) {
+          const lb = await getLeaderboardPage(leaderboard, { country, page });
+          if (page === 1) countryTotal = lb.total_count;
+          const idx = lb.players.findIndex((p) => p.profile_id === profileId);
+          if (idx >= 0) {
+            // The `rank` field in leaderboard rows is the global ladder rank,
+            // not the country rank — derive country rank from position.
+            countryRank = lb.offset + idx + 1;
+            break;
+          }
+          if (lb.players.length < lb.per_page) break;
+          if (lb.offset + lb.players.length >= lb.total_count) break;
+        }
+      } catch (e) {
+        logError(reqId, "country leaderboard fetch failed:", e);
+      }
+    }
+
+    const payload = {
+      leaderboard,
+      profile_id: profileId,
+      country,
+      rating: mode.rating ?? null,
+      max_rating: mode.max_rating ?? null,
+      rank: mode.rank ?? null,
+      rank_total: rankTotal,
+      rank_level: mode.rank_level ?? null,
+      country_rank: countryRank,
+      country_total: countryTotal,
+      streak: mode.streak ?? null,
+      games_count: mode.games_count ?? null,
+      wins_count: mode.wins_count ?? null,
+      losses_count: mode.losses_count ?? null,
+      win_rate: mode.win_rate ?? null,
+      unranked: false,
+    };
+    ratingInfoCache.set(cacheKey, { at: Date.now(), data: payload });
+    return c.json(payload);
+  } catch (e) {
+    logError(reqId, "rating-info failed:", e);
+    return c.json({ error: "fetch failed" }, 502);
+  }
 });
 
 meRoutes.post("/sync-now", async (c) => {

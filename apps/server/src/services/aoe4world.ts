@@ -48,6 +48,42 @@ export type RawAoe4WorldPlayer = {
   leaderboards?: Record<string, unknown>;
 };
 
+export type RawAoe4WorldMode = {
+  rating?: number | null;
+  max_rating?: number | null;
+  max_rating_7d?: number | null;
+  max_rating_1m?: number | null;
+  rank?: number | null;
+  rank_level?: string | null;
+  streak?: number | null;
+  games_count?: number | null;
+  wins_count?: number | null;
+  losses_count?: number | null;
+  win_rate?: number | null;
+  last_game_at?: string | null;
+};
+
+export type RawAoe4WorldFullPlayer = RawAoe4WorldPlayer & {
+  modes?: Record<string, RawAoe4WorldMode | undefined> | null;
+};
+
+export type RawLeaderboardEntry = {
+  name: string;
+  profile_id: number;
+  country?: string | null;
+  rank?: number | null;
+  rating?: number | null;
+};
+
+export type RawLeaderboardResponse = {
+  total_count: number;
+  page: number;
+  per_page: number;
+  count: number;
+  offset: number;
+  players: RawLeaderboardEntry[];
+};
+
 export type RawSearchResponse = {
   total_count: number;
   page: number;
@@ -168,9 +204,21 @@ export async function searchPlayers(query: string): Promise<RawSearchResponse> {
   return withMutex(() => fetchJsonWithBackoff<RawSearchResponse>(url));
 }
 
-export async function getPlayer(profileId: number): Promise<RawAoe4WorldPlayer> {
+export async function getPlayer(profileId: number): Promise<RawAoe4WorldFullPlayer> {
   const url = `${BASE}/players/${profileId}`;
-  return withMutex(() => fetchJsonWithBackoff<RawAoe4WorldPlayer>(url));
+  return withMutex(() => fetchJsonWithBackoff<RawAoe4WorldFullPlayer>(url));
+}
+
+export async function getLeaderboardPage(
+  leaderboard: string,
+  args: { country?: string; page?: number } = {},
+): Promise<RawLeaderboardResponse> {
+  const params = new URLSearchParams();
+  if (args.country) params.set("country", args.country);
+  if (args.page) params.set("page", String(args.page));
+  const qs = params.toString();
+  const url = `${BASE}/leaderboards/${leaderboard}${qs ? `?${qs}` : ""}`;
+  return withMutex(() => fetchJsonWithBackoff<RawLeaderboardResponse>(url));
 }
 
 export async function getLastGame(profileId: number): Promise<RawAoe4WorldGame | null> {

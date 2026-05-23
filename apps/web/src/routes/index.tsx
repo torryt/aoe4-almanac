@@ -1,7 +1,16 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { KNIGHTS_TEMPLAR } from "@aoe4-almanac/shared";
-import { api, qk, type GameDto, type Me, type SyncStatus } from "../lib/api.ts";
+import {
+  api,
+  qk,
+  type GameDto,
+  type Me,
+  type RatingHistory,
+  type RatingInfo,
+  type SyncStatus,
+} from "../lib/api.ts";
 import { useSyncEvents } from "../lib/useSyncEvents.ts";
 import { useCivNames } from "../lib/civNames.ts";
 import { Spinner } from "../components/Spinner.tsx";
@@ -59,6 +68,12 @@ function Dashboard() {
     refetchInterval: 5000,
     enabled: linked,
   });
+  const ratingInfo = useQuery({
+    queryKey: qk.ratingInfo("rm_solo"),
+    queryFn: () => api.get<RatingInfo>("/me/rating-info?leaderboard=rm_solo"),
+    enabled: linked,
+    staleTime: 60_000,
+  });
   const progress = useSyncEvents();
 
   if (me.isLoading) {
@@ -79,18 +94,6 @@ function Dashboard() {
   const wr30 = stats.data?.last_30d.win_rate;
   const games = recent.data?.games ?? [];
 
-  // Find current streak
-  let streak = 0;
-  let streakKind: "W" | "L" | null = null;
-  for (const g of games) {
-    if (!streakKind && (g.my_result === "win" || g.my_result === "loss")) {
-      streakKind = g.my_result === "win" ? "W" : "L";
-      streak = 1;
-    } else if (streakKind === "W" && g.my_result === "win") streak++;
-    else if (streakKind === "L" && g.my_result === "loss") streak++;
-    else break;
-  }
-
   // Median duration
   const durations = games
     .map((g) => g.duration_seconds)
@@ -100,9 +103,6 @@ function Dashboard() {
     ? durations[Math.floor(durations.length / 2)] ?? null
     : null;
 
-  // Rating from latest game
-  const latestRated = games.find((g) => g.my_rating !== null);
-  const latestRating = latestRated?.my_rating ?? null;
   const seasonDelta = games
     .map((g) => g.my_rating_diff ?? 0)
     .reduce((a, b) => a + b, 0);
@@ -165,7 +165,7 @@ function Dashboard() {
 
             <hr className="rule mt-10" />
 
-            <div className="grid grid-cols-5 pt-6 gap-6">
+            <div className="grid grid-cols-3 pt-6 gap-6">
               <Stat
                 label="Record"
                 value={`${wins30}–${losses30}`}
@@ -174,21 +174,6 @@ function Dashboard() {
                     ? `${(wr30 * 100).toFixed(1)}%`
                     : "—"
                 }
-              />
-              <Stat
-                label="Rating"
-                value={latestRating ?? "—"}
-                hint={
-                  seasonDelta !== 0
-                    ? `${seasonDelta > 0 ? "↑" : "↓"} ${seasonDelta > 0 ? "+" : ""}${seasonDelta}`
-                    : "no movement"
-                }
-                hintRed={seasonDelta > 0}
-              />
-              <Stat
-                label="Streak"
-                value={streakKind ? `${streakKind}${streak}` : "—"}
-                hint="current"
               />
               <Stat
                 label="Median"
@@ -301,6 +286,10 @@ function Dashboard() {
           </aside>
         </div>
       </section>
+
+      <SectionDivider />
+
+      <StandingSection info={ratingInfo.data} linked={linked} />
 
       <SectionDivider />
 
@@ -452,6 +441,454 @@ function Dashboard() {
         </div>
       </section>
     </>
+  );
+}
+
+function StandingSection({
+  info,
+  linked,
+}: {
+  info: RatingInfo | undefined;
+  linked: boolean;
+}) {
+  const [range, setRange] = useState<"recent" | "all">("recent");
+  const limit = range === "recent" ? 60 : 20000;
+  const ratingHistory = useQuery({
+    queryKey: [...qk.ratingHistory("rm_solo"), range] as const,
+    queryFn: () =>
+      api.get<RatingHistory>(
+        `/stats/rating-history?leaderboard=rm_solo&limit=${limit}`,
+      ),
+    enabled: linked,
+  });
+  const history = ratingHistory.data?.points ?? [];
+
+  return (
+    <section className="spread px-10 pt-12 pb-12">
+      <div className="grid grid-cols-12 gap-10">
+        <div className="col-span-3">
+          <div className="eyebrow-tight pb-4">The Standing</div>
+          <h2
+            className="font-display text-[#1c1c1a]"
+            style={{
+              fontSize: 56,
+              lineHeight: 0.95,
+              fontWeight: 700,
+              letterSpacing: "-0.015em",
+            }}
+          >
+            Where the
+            <br />
+            proprietor
+            <br />
+            <em className="text-[#9b2b2b]">stands.</em>
+          </h2>
+          <hr className="rule-gold my-6" />
+          <p className="marginalia">
+            Ratings and standings as reported by{" "}
+            <span className="italic">aoe4world</span> for the current ranked
+            solo season.
+          </p>
+        </div>
+
+        <div className="col-span-9">
+          {!info ? (
+            <div className="kicker py-6">Consulting the registry…</div>
+          ) : info.unranked ? (
+            <div className="kicker py-6 italic">
+              No ranked standing on file for the current season.
+            </div>
+          ) : (
+            <div className="grid grid-cols-12 gap-6">
+              <div className="col-span-4">
+                <div className="eyebrow-tight pb-3">Current Rating</div>
+                <div className="flex items-baseline gap-3">
+                  <div
+                    className="font-display"
+                    style={{ fontSize: 84, lineHeight: 0.9, fontWeight: 700 }}
+                  >
+                    {info.rating ?? "—"}
+                  </div>
+                  {info.max_rating != null &&
+                    info.rating != null &&
+                    info.max_rating > info.rating && (
+                      <div className="font-display text-[#5b574e]" style={{ fontSize: 18 }}>
+                        peak <span className="font-semibold">{info.max_rating}</span>
+                      </div>
+                    )}
+                </div>
+                <div className="kicker pt-2">
+                  {info.streak != null && info.streak !== 0 && (
+                    <>
+                      Current streak{" "}
+                      <span
+                        className={
+                          info.streak > 0
+                            ? "font-semibold"
+                            : "text-[#9b2b2b] font-semibold"
+                        }
+                      >
+                        {info.streak > 0 ? `W${info.streak}` : `L${Math.abs(info.streak)}`}
+                      </span>
+                      {" · "}
+                    </>
+                  )}
+                  {info.win_rate != null && (
+                    <>{info.win_rate.toFixed(1)}% win rate</>
+                  )}
+                </div>
+
+                <div className="mt-6">
+                  <div className="flex justify-end pb-2">
+                    <RangeToggle value={range} onChange={setRange} />
+                  </div>
+                  <Sparkline points={history} width={420} height={110} />
+                </div>
+              </div>
+
+              <div className="col-span-4">
+                <div className="eyebrow-tight pb-3">World</div>
+                <div
+                  className="font-display"
+                  style={{ fontSize: 52, lineHeight: 1, fontWeight: 700 }}
+                >
+                  #{info.rank?.toLocaleString() ?? "—"}
+                </div>
+                <p className="kicker pt-2">
+                  {info.rank_total != null && (
+                    <>
+                      of{" "}
+                      <span className="font-semibold">
+                        {info.rank_total.toLocaleString()}
+                      </span>
+                      {" "}ranked solo players
+                    </>
+                  )}
+                </p>
+
+                <hr className="rule-faint my-5" />
+
+                <div className="eyebrow-tight pb-3">
+                  {info.country
+                    ? `Country · ${info.country.toUpperCase()}`
+                    : "Country"}
+                </div>
+                <div
+                  className="font-display"
+                  style={{ fontSize: 52, lineHeight: 1, fontWeight: 700 }}
+                >
+                  {info.country_rank != null ? (
+                    <>
+                      <span className="text-[#9b2b2b]">#</span>
+                      {info.country_rank.toLocaleString()}
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </div>
+                <p className="kicker pt-2">
+                  {info.country_total != null ? (
+                    <>
+                      of{" "}
+                      <span className="font-semibold">
+                        {info.country_total.toLocaleString()}
+                      </span>{" "}
+                      countrymen
+                    </>
+                  ) : info.country ? (
+                    "country ranking unavailable"
+                  ) : (
+                    "no country on file"
+                  )}
+                </p>
+              </div>
+
+              <div className="col-span-4">
+                <div className="eyebrow-tight pb-3">Placement</div>
+                <LeagueBadge level={info.rank_level} />
+                <p className="kicker pt-3">
+                  {info.rank != null && info.rank_total != null && (
+                    <>
+                      Top{" "}
+                      <span className="font-semibold">
+                        {((info.rank / info.rank_total) * 100).toFixed(1)}%
+                      </span>{" "}
+                      of the field.
+                    </>
+                  )}
+                </p>
+
+                <hr className="rule-faint my-5" />
+
+                <dl className="stat-block">
+                  <dt>Season W–L</dt>
+                  <dd>
+                    {info.wins_count ?? 0}–{info.losses_count ?? 0}
+                  </dd>
+                  <dt>Games</dt>
+                  <dd>{info.games_count ?? 0}</dd>
+                  {info.max_rating != null && (
+                    <>
+                      <dt>Peak</dt>
+                      <dd>{info.max_rating}</dd>
+                    </>
+                  )}
+                </dl>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RangeToggle({
+  value,
+  onChange,
+}: {
+  value: "recent" | "all";
+  onChange: (v: "recent" | "all") => void;
+}) {
+  const btn = (key: "recent" | "all", label: string) => {
+    const active = value === key;
+    return (
+      <button
+        type="button"
+        onClick={() => onChange(key)}
+        className={`px-2 py-1 transition-colors ${
+          active
+            ? "text-[#9b2b2b] border-b border-[#9b2b2b]"
+            : "text-[#5b574e] hover:text-[#1c1c1a]"
+        }`}
+        style={{
+          fontFamily: "Inter Tight, sans-serif",
+          fontSize: 9.5,
+          letterSpacing: "0.22em",
+          textTransform: "uppercase",
+          fontWeight: 600,
+        }}
+      >
+        {label}
+      </button>
+    );
+  };
+  return (
+    <div className="flex items-center gap-1">
+      {btn("recent", "60 g")}
+      {btn("all", "All-time")}
+    </div>
+  );
+}
+
+function fmtSparkDate(unix: number): string {
+  const d = new Date(unix * 1000);
+  const month = d.toLocaleString(undefined, { month: "short" });
+  return `${d.getDate()} ${month} ${d.getFullYear()}`;
+}
+
+function Sparkline({
+  points,
+  width = 320,
+  height = 80,
+}: {
+  points: Array<{ at: number; rating: number }>;
+  width?: number;
+  height?: number;
+}) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+
+  if (points.length < 2) {
+    return (
+      <div className="kicker italic" style={{ fontSize: 12 }}>
+        Not enough rated games to plot.
+      </div>
+    );
+  }
+  const pad = 4;
+  const ratings = points.map((p) => p.rating);
+  const min = Math.min(...ratings);
+  const max = Math.max(...ratings);
+  const range = max - min || 1;
+  const stepX = (width - pad * 2) / (points.length - 1);
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (!p) continue;
+    xs.push(pad + i * stepX);
+    ys.push(pad + (height - pad * 2) * (1 - (p.rating - min) / range));
+  }
+  const path = points
+    .map((p, i) => `${i === 0 ? "M" : "L"}${xs[i]?.toFixed(2)},${ys[i]?.toFixed(2)}`)
+    .join(" ");
+  const fillPath = `${path} L${xs[xs.length - 1]?.toFixed(2)},${(height - pad).toFixed(2)} L${pad},${(height - pad).toFixed(2)} Z`;
+  const lastIdx = points.length - 1;
+  const focusIdx = hoverIdx != null ? hoverIdx : lastIdx;
+  const focusPoint = points[focusIdx];
+  const focusX = xs[focusIdx] ?? 0;
+  const focusY = ys[focusIdx] ?? 0;
+
+  const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const xLocal = ((e.clientX - rect.left) / rect.width) * width;
+    const idx = Math.round((xLocal - pad) / stepX);
+    const clamped = Math.max(0, Math.min(points.length - 1, idx));
+    setHoverIdx(clamped);
+  };
+
+  return (
+    <div>
+      <div className="relative">
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          width="100%"
+          height={height}
+          style={{ display: "block", touchAction: "none" }}
+          onPointerMove={onMove}
+          onPointerLeave={() => setHoverIdx(null)}
+        >
+          <path d={fillPath} fill="rgba(155,43,43,0.08)" />
+          <path
+            d={path}
+            fill="none"
+            stroke="#9b2b2b"
+            strokeWidth={1.25}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          {hoverIdx != null && focusPoint && (
+            <>
+              <line
+                x1={focusX}
+                x2={focusX}
+                y1={pad}
+                y2={height - pad}
+                stroke="#5b574e"
+                strokeWidth={0.5}
+                strokeDasharray="2 2"
+              />
+              <circle cx={focusX} cy={focusY} r={3} fill="#9b2b2b" />
+            </>
+          )}
+          {hoverIdx == null && (
+            <circle cx={xs[lastIdx]} cy={ys[lastIdx]} r={2.5} fill="#9b2b2b" />
+          )}
+        </svg>
+        {focusPoint && (
+          <HoverTooltip
+            x={focusX}
+            y={focusY}
+            width={width}
+            height={height}
+            point={focusPoint}
+            active={hoverIdx != null}
+          />
+        )}
+      </div>
+      <div
+        className="flex justify-between font-display text-[#5b574e] pt-1"
+        style={{ fontSize: 12 }}
+      >
+        <span>
+          {points[0] ? fmtSparkDate(points[0].at) : "—"}{" "}
+          <span className="italic">· min {min}</span>
+        </span>
+        <span className="italic">
+          {points.length} games · max {max}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function HoverTooltip({
+  x,
+  y,
+  width,
+  height,
+  point,
+  active,
+}: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  point: { at: number; rating: number };
+  active: boolean;
+}) {
+  if (!active) return null;
+  const leftPct = (x / width) * 100;
+  const topPct = (y / height) * 100;
+  const flipX = leftPct > 70;
+  const flipY = topPct < 40;
+  return (
+    <div
+      className="pointer-events-none absolute bg-[#1c1c1a] text-[#f1ece4] px-2.5 py-1.5"
+      style={{
+        left: `${leftPct}%`,
+        top: `${topPct}%`,
+        transform: `translate(${flipX ? "calc(-100% - 10px)" : "10px"}, ${flipY ? "10px" : "calc(-100% - 10px)"})`,
+        fontFamily: "Inter Tight, sans-serif",
+        fontSize: 11,
+        letterSpacing: "0.04em",
+        whiteSpace: "nowrap",
+        boxShadow: "0 2px 8px rgba(28,28,26,0.25)",
+      }}
+    >
+      <div
+        className="font-display"
+        style={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}
+      >
+        {point.rating}
+        <span
+          className="text-[#b8a87f] pl-1"
+          style={{ fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 500 }}
+        >
+          ELO
+        </span>
+      </div>
+      <div
+        className="text-[#b8a87f] pt-0.5"
+        style={{ fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase" }}
+      >
+        {fmtSparkDate(point.at)}
+      </div>
+    </div>
+  );
+}
+
+function LeagueBadge({ level }: { level: string | null }) {
+  if (!level) {
+    return (
+      <div
+        className="font-display italic text-[#5b574e]"
+        style={{ fontSize: 28 }}
+      >
+        Unranked
+      </div>
+    );
+  }
+  const pretty = level
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\b(\d)\b/, (m) => ["", "I", "II", "III", "IV"][Number(m)] ?? m);
+  const isConq = level.startsWith("conqueror");
+  return (
+    <div>
+      <div
+        className="font-display"
+        style={{
+          fontSize: 36,
+          lineHeight: 1,
+          fontWeight: 700,
+          color: isConq ? "#9b2b2b" : "#1c1c1a",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {pretty}
+      </div>
+    </div>
   );
 }
 

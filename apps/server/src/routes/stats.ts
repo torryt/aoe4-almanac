@@ -117,6 +117,34 @@ statsRoutes.get("/by-map", (c) => {
   });
 });
 
+statsRoutes.get("/rating-history", (c) => {
+  const userId = c.get("userId");
+  const leaderboard = c.req.query("leaderboard") || "rm_solo";
+  const limitRaw = Number(c.req.query("limit") ?? "60");
+  const limit = Number.isFinite(limitRaw)
+    ? Math.max(2, Math.min(20000, Math.floor(limitRaw)))
+    : 60;
+  const rows = sqlite()
+    .prepare(
+      `SELECT started_at, my_rating
+       FROM games
+       WHERE user_id = ?
+         AND leaderboard = ?
+         AND my_rating IS NOT NULL
+       ORDER BY started_at DESC
+       LIMIT ?`,
+    )
+    .all(userId, leaderboard, limit) as Array<{
+    started_at: number;
+    my_rating: number;
+  }>;
+  const points = rows.reverse().map((r) => ({
+    at: r.started_at,
+    rating: r.my_rating,
+  }));
+  return c.json({ leaderboard, points });
+});
+
 statsRoutes.get("/recent", (c) => {
   const userId = c.get("userId");
   const recent = sqlite()

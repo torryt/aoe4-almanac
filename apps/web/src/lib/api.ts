@@ -82,6 +82,9 @@ export const qk = {
   statsMatchups: ["stats", "matchups"] as const,
   statsByMap: ["stats", "by-map"] as const,
   statsRecent: ["stats", "recent"] as const,
+  ratingInfo: (leaderboard: string) => ["me", "rating-info", leaderboard] as const,
+  ratingHistory: (leaderboard: string) =>
+    ["stats", "rating-history", leaderboard] as const,
   opponents: (params: Record<string, unknown> = {}) =>
     ["opponents", params] as const,
   opponent: (key: string) => ["opponent", key] as const,
@@ -100,6 +103,7 @@ const GAME_DATA_KEY_PREFIXES = [
   ["opponent"],
   ["notes", "game"],
   qk.dataCounts,
+  ["me", "rating-info"],
 ] as const;
 
 export function clearGameDataCache(qc: QueryClient): void {
@@ -245,6 +249,36 @@ export type SyncStatus = {
     last_error: string | null;
   }>;
   in_flight: boolean;
+};
+
+export type RatingInfo =
+  | {
+      unranked: true;
+      leaderboard: string;
+      country: string | null;
+    }
+  | {
+      unranked: false;
+      leaderboard: string;
+      profile_id: number;
+      country: string | null;
+      rating: number | null;
+      max_rating: number | null;
+      rank: number | null;
+      rank_total: number | null;
+      rank_level: string | null;
+      country_rank: number | null;
+      country_total: number | null;
+      streak: number | null;
+      games_count: number | null;
+      wins_count: number | null;
+      losses_count: number | null;
+      win_rate: number | null;
+    };
+
+export type RatingHistory = {
+  leaderboard: string;
+  points: Array<{ at: number; rating: number }>;
 };
 
 export type SearchResult = {
