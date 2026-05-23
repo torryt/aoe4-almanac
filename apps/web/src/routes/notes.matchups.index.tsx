@@ -42,6 +42,27 @@ function MatchupGrid() {
         }>;
       }>("/notes/matchups"),
   });
+  const matrixQ = useQuery({
+    queryKey: qk.statsMatchups,
+    queryFn: () =>
+      api.get<{
+        rows: Array<{
+          my_civ_slug: string;
+          opp_civ_slug: string;
+          games: number;
+          wins: number;
+          losses: number;
+          draws: number;
+          win_rate: number | null;
+        }>;
+      }>("/stats/matchups"),
+  });
+  const matrixByKey = new Map(
+    (matrixQ.data?.rows ?? []).map((r) => [
+      `${r.my_civ_slug}|${r.opp_civ_slug}`,
+      r,
+    ]),
+  );
 
   const allCivs = civsQ.data?.civs ?? [];
   const orderedCivs: Civ[] = [];
@@ -132,7 +153,7 @@ function MatchupGrid() {
                     "repeating-linear-gradient(45deg, transparent 0, transparent 2px, rgba(28,28,26,0.4) 2px, rgba(28,28,26,0.4) 3px)",
                 }}
               />
-              <span>Mirror match</span>
+              <span>Mirror match (notes allowed)</span>
             </div>
           </div>
 
@@ -233,16 +254,11 @@ function MatchupGrid() {
                         {rowCiv.name}
                       </div>
                       {orderedCivs.map((colCiv) => {
-                        if (rowCiv.slug === colCiv.slug) {
-                          return (
-                            <div
-                              key={colCiv.slug}
-                              className="grid-cell diag"
-                              aria-hidden
-                            />
-                          );
-                        }
+                        const isMirror = rowCiv.slug === colCiv.slug;
                         const has = notesSet.has(
+                          `${rowCiv.slug}|${colCiv.slug}`,
+                        );
+                        const stats = matrixByKey.get(
                           `${rowCiv.slug}|${colCiv.slug}`,
                         );
                         return (
@@ -254,16 +270,35 @@ function MatchupGrid() {
                                   myCiv: rowCiv.slug,
                                   oppCiv: colCiv.slug,
                                 }}
-                                className="grid-cell"
+                                className={`grid-cell ${isMirror ? "diag" : ""}`}
                               >
                                 <span
                                   className={`dot ${has ? "filled" : "hollow"}`}
                                 />
+                                {stats && stats.games > 0 && stats.win_rate !== null && (
+                                  <span className="wr">
+                                    {Math.round(stats.win_rate * 100)}
+                                  </span>
+                                )}
                               </Link>
                             </TooltipTrigger>
                             <TooltipContent>
                               {rowCiv.name} vs {colCiv.name}
+                              {isMirror ? " · mirror" : ""}
                               {has ? " · noted" : ""}
+                              {stats && stats.games > 0 && (
+                                <>
+                                  {" · "}
+                                  {stats.wins}W–{stats.losses}L
+                                  {stats.draws > 0 ? `–${stats.draws}D` : ""}
+                                  {stats.win_rate !== null && (
+                                    <>
+                                      {" ("}
+                                      {(stats.win_rate * 100).toFixed(0)}%)
+                                    </>
+                                  )}
+                                </>
+                              )}
                             </TooltipContent>
                           </Tooltip>
                         );

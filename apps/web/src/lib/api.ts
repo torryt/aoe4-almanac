@@ -75,11 +75,20 @@ export const qk = {
   mapNote: (slug: string) => ["notes", "map", slug] as const,
   gameNote: (id: number) => ["notes", "game", id] as const,
   statsByCiv: (myCiv: string) => ["stats", "by-civ", myCiv] as const,
+  statsMatchups: ["stats", "matchups"] as const,
   statsByMap: ["stats", "by-map"] as const,
   statsRecent: ["stats", "recent"] as const,
   opponents: (params: Record<string, unknown> = {}) =>
     ["opponents", params] as const,
   opponent: (key: string) => ["opponent", key] as const,
+  dataCounts: ["me", "data-counts"] as const,
+};
+
+export type DataCounts = {
+  current_profile_id: number | null;
+  games: number;
+  game_notes: number;
+  sync_state_rows: number;
 };
 
 export type Opponent = {

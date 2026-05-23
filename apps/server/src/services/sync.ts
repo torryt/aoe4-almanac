@@ -394,6 +394,39 @@ function ingestGame(
   return isNew;
 }
 
+export type UserDataCounts = {
+  games: number;
+  game_notes: number;
+  sync_state_rows: number;
+};
+
+export function countUserGameData(userId: number): UserDataCounts {
+  const games = sqlite()
+    .prepare("SELECT COUNT(*) AS c FROM games WHERE user_id = ?")
+    .get(userId) as { c: number };
+  const gameNotes = sqlite()
+    .prepare("SELECT COUNT(*) AS c FROM game_notes WHERE user_id = ?")
+    .get(userId) as { c: number };
+  const syncRows = sqlite()
+    .prepare("SELECT COUNT(*) AS c FROM sync_state WHERE user_id = ?")
+    .get(userId) as { c: number };
+  return {
+    games: games.c,
+    game_notes: gameNotes.c,
+    sync_state_rows: syncRows.c,
+  };
+}
+
+export function wipeUserGameData(userId: number): UserDataCounts {
+  const before = countUserGameData(userId);
+  sqlite().transaction(() => {
+    // game_participants and game_notes cascade via FK ON DELETE CASCADE.
+    sqlite().prepare("DELETE FROM games WHERE user_id = ?").run(userId);
+    sqlite().prepare("DELETE FROM sync_state WHERE user_id = ?").run(userId);
+  })();
+  return before;
+}
+
 export async function linkProfileAndBackfill(
   userId: number,
   profileId: number,
@@ -401,6 +434,23 @@ export async function linkProfileAndBackfill(
 ): Promise<void> {
   const player = await getPlayer(profileId);
   log(opts.reqId, `link.player_fetched profile_id=${profileId} name=${player.name}`);
+
+  // If switching to a different profile, wipe all per-user game data first.
+  // Same-profile re-link or null→profile link is non-destructive.
+  const existing = db()
+    .select({ profileId: users.aoe4worldProfileId })
+    .from(users)
+    .where(eq(users.id, userId))
+    .get();
+  const previousProfileId = existing?.profileId ?? null;
+  if (previousProfileId !== null && previousProfileId !== profileId) {
+    const wiped = wipeUserGameData(userId);
+    log(
+      opts.reqId,
+      `link.wiped previous_profile=${previousProfileId} new_profile=${profileId} games=${wiped.games} game_notes=${wiped.game_notes} sync_rows=${wiped.sync_state_rows}`,
+    );
+  }
+
   db()
     .update(users)
     .set({

@@ -49,6 +49,43 @@ statsRoutes.get("/by-civ", zValidator("query", statsByCivQuerySchema), (c) => {
   });
 });
 
+statsRoutes.get("/matchups", (c) => {
+  const userId = c.get("userId");
+  const rows = sqlite()
+    .prepare(
+      `SELECT
+         g.my_civ_slug AS my_civ_slug,
+         p.civ_slug AS opp_civ_slug,
+         COUNT(*) AS games,
+         SUM(CASE WHEN g.my_result = 'win' THEN 1 ELSE 0 END) AS wins,
+         SUM(CASE WHEN g.my_result = 'loss' THEN 1 ELSE 0 END) AS losses,
+         SUM(CASE WHEN g.my_result = 'draw' THEN 1 ELSE 0 END) AS draws
+       FROM games g
+       JOIN game_participants p ON p.game_id = g.id AND p.is_self = 0
+       WHERE g.user_id = ?
+       GROUP BY g.my_civ_slug, p.civ_slug`,
+    )
+    .all(userId) as Array<{
+    my_civ_slug: string;
+    opp_civ_slug: string;
+    games: number;
+    wins: number;
+    losses: number;
+    draws: number;
+  }>;
+  return c.json({
+    rows: rows.map((r) => ({
+      my_civ_slug: r.my_civ_slug,
+      opp_civ_slug: r.opp_civ_slug,
+      games: r.games,
+      wins: r.wins,
+      losses: r.losses,
+      draws: r.draws,
+      win_rate: r.games > 0 ? r.wins / r.games : null,
+    })),
+  });
+});
+
 statsRoutes.get("/by-map", (c) => {
   const userId = c.get("userId");
   const rows = sqlite()
@@ -98,8 +135,12 @@ statsRoutes.get("/recent", (c) => {
     )
     .get(userId, cutoff) as { games: number; wins: number; losses: number } | undefined;
   const games = agg?.games ?? 0;
+  const total = sqlite()
+    .prepare(`SELECT COUNT(*) AS n FROM games WHERE user_id = ?`)
+    .get(userId) as { n: number } | undefined;
   return c.json({
     recent,
+    total_games: total?.n ?? 0,
     last_30d: {
       games,
       wins: agg?.wins ?? 0,

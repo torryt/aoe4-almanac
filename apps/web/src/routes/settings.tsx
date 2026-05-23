@@ -4,13 +4,23 @@ import { useEffect, useState } from "react";
 import {
   api,
   qk,
+  type DataCounts,
   type Me,
   type SearchResult,
   type SyncStatus,
 } from "../lib/api.ts";
 import { useSyncEvents } from "../lib/useSyncEvents.ts";
 import { Spinner } from "../components/Spinner.tsx";
-import { Button, Input } from "../components/ui/index.ts";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+} from "../components/ui/index.ts";
 
 export const Route = createFileRoute("/settings")({
   component: Settings,
@@ -38,6 +48,7 @@ function Settings() {
     if (progress.last_event?.type === "sync.completed") {
       void qc.invalidateQueries({ queryKey: ["games"] });
       void qc.invalidateQueries({ queryKey: qk.syncStatus });
+      void qc.invalidateQueries({ queryKey: qk.dataCounts });
     }
   }, [progress.last_event, qc]);
 
@@ -54,7 +65,19 @@ function Settings() {
 
   const unlinkMut = useMutation({
     mutationFn: () => api.delete<{ ok: true }>("/me/link-aoe4world"),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.me }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.me });
+      void qc.invalidateQueries({ queryKey: qk.syncStatus });
+      void qc.invalidateQueries({ queryKey: ["games"] });
+      void qc.invalidateQueries({ queryKey: qk.dataCounts });
+    },
+  });
+
+  const [unlinkOpen, setUnlinkOpen] = useState(false);
+  const dataCounts = useQuery({
+    queryKey: qk.dataCounts,
+    queryFn: () => api.get<DataCounts>("/me/data-counts"),
+    enabled: !!me.data?.aoe4world_profile_id,
   });
 
   const syncMut = useMutation({
@@ -147,7 +170,7 @@ function Settings() {
                   </Button>
                   <Button
                     variant="warning"
-                    onClick={() => unlinkMut.mutate()}
+                    onClick={() => setUnlinkOpen(true)}
                     disabled={unlinkMut.isPending || backfilling}
                     className="ml-auto"
                   >
@@ -155,6 +178,10 @@ function Settings() {
                     Unlink
                   </Button>
                 </div>
+                <p className="kicker italic text-[#5b574e]">
+                  Unlinking permanently deletes all imported games and sync
+                  history. Your civ, matchup, and map notes are preserved.
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -286,7 +313,108 @@ function Settings() {
           </div>
         </div>
       </div>
+
+      <UnlinkConfirmDialog
+        open={unlinkOpen}
+        onOpenChange={setUnlinkOpen}
+        counts={dataCounts.data}
+        displayName={me.data?.display_name ?? null}
+        profileId={me.data?.aoe4world_profile_id ?? null}
+        pending={unlinkMut.isPending}
+        onConfirm={() => {
+          unlinkMut.mutate(undefined, {
+            onSuccess: () => setUnlinkOpen(false),
+          });
+        }}
+      />
     </section>
+  );
+}
+
+function UnlinkConfirmDialog({
+  open,
+  onOpenChange,
+  counts,
+  displayName,
+  profileId,
+  pending,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  counts: DataCounts | undefined;
+  displayName: string | null;
+  profileId: number | null;
+  pending: boolean;
+  onConfirm: () => void;
+}) {
+  const games = counts?.games ?? 0;
+  const gameNotes = counts?.game_notes ?? 0;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Sever the binding?</DialogTitle>
+          <DialogDescription>
+            You are about to unlink{" "}
+            <span className="font-semibold text-[#9b2b2b]">
+              {displayName ?? "this profile"}
+            </span>
+            {profileId !== null && (
+              <span className="italic text-[#5b574e]">
+                {" "}
+                (profile #{profileId})
+              </span>
+            )}
+            . This permanently deletes imported games and sync history from
+            the Almanac. The deletion cannot be undone from here — you would
+            need to re-link and run a full backfill.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="border-l-2 border-[#9b2b2b] bg-[rgba(155,43,43,0.05)] px-4 py-3">
+          <p
+            className="eyebrow-tight pb-2"
+            style={{ color: "#7a1f1f" }}
+          >
+            Will be deleted
+          </p>
+          <dl className="stat-block">
+            <dt>Imported games</dt>
+            <dd className="font-display font-semibold">{games}</dd>
+            <dt>Game-specific notes</dt>
+            <dd className="font-display font-semibold">{gameNotes}</dd>
+            <dt>Sync history</dt>
+            <dd className="font-display font-semibold">
+              {counts?.sync_state_rows ?? 0} row
+              {counts?.sync_state_rows === 1 ? "" : "s"}
+            </dd>
+          </dl>
+          <p className="kicker pt-3 italic text-[#5b574e]">
+            Civ, matchup, and map notes are kept — they belong to you, not the
+            profile.
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            disabled={pending}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="warning"
+            onClick={onConfirm}
+            disabled={pending}
+          >
+            {pending && <Spinner size={12} />}
+            Unlink &amp; delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

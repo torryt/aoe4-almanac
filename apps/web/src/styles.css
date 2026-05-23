@@ -186,16 +186,16 @@ body {
     rgba(28, 28, 26, 0.07) 4px,
     rgba(28, 28, 26, 0.07) 5px
   );
-  cursor: default;
 }
 .grid-cell.diag:hover {
-  background: repeating-linear-gradient(
+  background-image: repeating-linear-gradient(
     45deg,
     transparent 0,
     transparent 4px,
     rgba(28, 28, 26, 0.07) 4px,
     rgba(28, 28, 26, 0.07) 5px
   );
+  background-color: rgba(28, 28, 26, 0.06);
 }
 
 .row-label {

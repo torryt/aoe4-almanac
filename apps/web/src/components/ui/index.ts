@@ -16,3 +16,15 @@ export {
 } from "./tooltip.tsx";
 export { Input, Textarea } from "./input.tsx";
 export { Label } from "./label.tsx";
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from "./dialog.tsx";

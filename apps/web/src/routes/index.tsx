@@ -13,6 +13,7 @@ export const Route = createFileRoute("/")({
 
 type RecentStats = {
   recent: Array<Record<string, unknown>>;
+  total_games: number;
   last_30d: {
     games: number;
     wins: number;
@@ -180,7 +181,7 @@ function Dashboard() {
               />
               <Stat
                 label="Games"
-                value={recent.data?.games.length ?? 0}
+                value={stats.data?.total_games ?? 0}
                 hint="on file"
               />
             </div>

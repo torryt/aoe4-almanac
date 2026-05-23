@@ -6,7 +6,12 @@ import type { AppContext } from "../auth/middleware.ts";
 import { db } from "../db/client.ts";
 import { users } from "../db/schema.ts";
 import { log, logError } from "../log.ts";
-import { linkProfileAndBackfill, runSync } from "../services/sync.ts";
+import {
+  countUserGameData,
+  linkProfileAndBackfill,
+  runSync,
+  wipeUserGameData,
+} from "../services/sync.ts";
 
 export const meRoutes = new Hono<AppContext>();
 
@@ -39,14 +44,34 @@ meRoutes.post(
   },
 );
 
+meRoutes.get("/data-counts", (c) => {
+  const userId = c.get("userId");
+  const counts = countUserGameData(userId);
+  const row = db()
+    .select({ profileId: users.aoe4worldProfileId })
+    .from(users)
+    .where(eq(users.id, userId))
+    .get();
+  return c.json({
+    current_profile_id: row?.profileId ?? null,
+    ...counts,
+  });
+});
+
 meRoutes.delete("/link-aoe4world", (c) => {
   const userId = c.get("userId");
+  const reqId = c.get("reqId");
+  const wiped = wipeUserGameData(userId);
   db()
     .update(users)
     .set({ aoe4worldProfileId: null, updatedAt: sql`(unixepoch())` })
     .where(eq(users.id, userId))
     .run();
-  return c.json({ ok: true });
+  log(
+    reqId,
+    `unlink.wiped user=${userId} games=${wiped.games} game_notes=${wiped.game_notes} sync_rows=${wiped.sync_state_rows}`,
+  );
+  return c.json({ ok: true, wiped });
 });
 
 meRoutes.post("/sync-now", async (c) => {
