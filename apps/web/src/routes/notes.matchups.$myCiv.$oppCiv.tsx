@@ -1,13 +1,21 @@
 import {
+  useInfiniteQuery,
   useMutation,
-  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { prettyCivName } from "@aoe4-almanac/shared";
-import { api, qk, type Civ, type GameDto } from "../lib/api.ts";
+import {
+  api,
+  qk,
+  type Civ,
+  type GameDto,
+  type GameNoteBatchEntry,
+} from "../lib/api.ts";
+import { Spinner } from "../components/Spinner.tsx";
+import { prettyMap } from "./index.tsx";
 import {
   Button,
   Tabs,
@@ -55,31 +63,36 @@ function MatchupNoteEditor() {
         }>;
       }>(`/stats/by-civ?my_civ=${myCiv}`),
   });
-  const recentQ = useQuery({
-    queryKey: qk.games({ civ: myCiv, opp_civ: oppCiv, limit: 20 }),
+  const PAGE_SIZE = 10;
+  const gamesQ = useInfiniteQuery({
+    queryKey: qk.games({ civ: myCiv, opp_civ: oppCiv, limit: PAGE_SIZE, paged: true }),
+    initialPageParam: null as number | null,
+    queryFn: ({ pageParam }) => {
+      const qs = new URLSearchParams({
+        civ: myCiv,
+        opp_civ: oppCiv,
+        limit: String(PAGE_SIZE),
+      });
+      if (pageParam !== null) qs.set("cursor", String(pageParam));
+      return api.get<{ games: GameDto[]; next_cursor: number | null }>(
+        `/games?${qs.toString()}`,
+      );
+    },
+    getNextPageParam: (last) => last.next_cursor,
+  });
+  const allGames = gamesQ.data?.pages.flatMap((p) => p.games) ?? [];
+  const gameIds = allGames.map((g) => g.id);
+
+  const gameNotesQ = useQuery({
+    queryKey: qk.gameNotesBatch(gameIds),
     queryFn: () =>
-      api.get<{ games: GameDto[] }>(
-        `/games?civ=${myCiv}&opp_civ=${oppCiv}&limit=20`,
+      api.get<{ notes: GameNoteBatchEntry[] }>(
+        `/notes/games?ids=${gameIds.join(",")}`,
       ),
+    enabled: gameIds.length > 0,
   });
-  const gameIds = recentQ.data?.games.map((g) => g.id) ?? [];
-  const gameNoteQueries = useQueries({
-    queries: gameIds.map((id) => ({
-      queryKey: qk.gameNote(id),
-      queryFn: () =>
-        api.get<{ body_md: string; updated_at: number | null }>(
-          `/notes/games/${id}`,
-        ),
-    })),
-  });
-  const gameNotesById = new Map<
-    number,
-    { body_md: string; updated_at: number | null }
-  >();
-  gameIds.forEach((id, idx) => {
-    const data = gameNoteQueries[idx]?.data;
-    if (data) gameNotesById.set(id, data);
-  });
+  const gameNotesById = new Map<number, GameNoteBatchEntry>();
+  for (const n of gameNotesQ.data?.notes ?? []) gameNotesById.set(n.game_id, n);
 
   const [draft, setDraft] = useState("");
   useEffect(() => {
@@ -99,7 +112,7 @@ function MatchupNoteEditor() {
   const my = civsMap.get(myCiv);
   const opp = civsMap.get(oppCiv);
   const stats = (statsQ.data?.rows ?? []).find((r) => r.opp_civ_slug === oppCiv);
-  const games = recentQ.data?.games ?? [];
+  const games = allGames;
 
   const wordCount = draft.trim().split(/\s+/).filter(Boolean).length;
   const dirty = draft !== (noteQ.data?.body_md ?? "");
@@ -204,9 +217,13 @@ function MatchupNoteEditor() {
             </div>
           </div>
 
-          <NotesFromTheField
+          <MatchupGames
             games={games}
             notesById={gameNotesById}
+            isLoading={gamesQ.isLoading}
+            hasNextPage={gamesQ.hasNextPage ?? false}
+            isFetchingNextPage={gamesQ.isFetchingNextPage}
+            onLoadMore={() => void gamesQ.fetchNextPage()}
           />
         </article>
 
@@ -229,51 +246,6 @@ function MatchupNoteEditor() {
             </dl>
           ) : (
             <p className="kicker">No games recorded yet.</p>
-          )}
-
-          <hr className="rule-faint my-6" />
-
-          <div className="eyebrow-tight pb-3">Last encounters</div>
-          {games.length === 0 ? (
-            <p className="kicker">No prior meetings.</p>
-          ) : (
-            <div className="space-y-3">
-              {games.map((g) => (
-                <Link
-                  key={g.id}
-                  to="/games/$gameId"
-                  params={{ gameId: String(g.id) }}
-                  className="flex items-baseline justify-between hover:underline"
-                >
-                  <div className="font-display" style={{ fontSize: 15 }}>
-                    {fmtDay(g.started_at)} ·{" "}
-                    <span className="italic text-[#5b574e]">
-                      {g.map_slug ?? "—"}
-                    </span>
-                  </div>
-                  <div
-                    className={`font-display ${g.my_result === "win" ? "result-W" : g.my_result === "loss" ? "result-L" : ""}`}
-                    style={{ fontSize: 15 }}
-                  >
-                    {g.my_result === "win"
-                      ? "W"
-                      : g.my_result === "loss"
-                        ? "L"
-                        : "—"}{" "}
-                    {g.my_rating_diff !== null && (
-                      <>
-                        ·{" "}
-                        {g.my_rating_diff > 0
-                          ? `+${g.my_rating_diff}`
-                          : g.my_rating_diff < 0
-                            ? `−${Math.abs(g.my_rating_diff)}`
-                            : "0"}
-                      </>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
           )}
 
           <hr className="rule-faint my-6" />
@@ -306,100 +278,157 @@ function MatchupNoteEditor() {
   );
 }
 
-function NotesFromTheField({
+function MatchupGames({
   games,
   notesById,
+  isLoading,
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
 }: {
   games: GameDto[];
-  notesById: Map<number, { body_md: string; updated_at: number | null }>;
+  notesById: Map<number, GameNoteBatchEntry>;
+  isLoading: boolean;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  onLoadMore: () => void;
 }) {
-  const annotated = games
-    .map((g) => ({ game: g, note: notesById.get(g.id) }))
-    .filter((row) => row.note && row.note.body_md.trim().length > 0);
-
-  if (annotated.length === 0) return null;
+  const annotated = games.filter((g) => {
+    const n = notesById.get(g.id);
+    return n && n.body_md.trim().length > 0;
+  }).length;
 
   return (
     <section className="pt-12">
       <div className="flex items-center gap-4 pb-4">
-        <span className="eyebrow">Notes from the field</span>
+        <span className="eyebrow">From the field</span>
         <hr className="rule-faint flex-1" />
         <span className="eyebrow">
-          {annotated.length} entr{annotated.length === 1 ? "y" : "ies"}
+          {games.length} game{games.length === 1 ? "" : "s"} · {annotated} noted
         </span>
       </div>
 
-      <div className="space-y-8">
-        {annotated.map(({ game, note }) => {
-          const opp = game.participants.find((p) => !p.is_self);
-          return (
-            <article key={game.id} className="border-l-2 border-[#7a6a4a] pl-5">
-              <div className="flex items-baseline justify-between pb-2">
-                <Link
-                  to="/games/$gameId"
-                  params={{ gameId: String(game.id) }}
-                  className="font-display hover:underline"
-                  style={{ fontSize: 22, fontWeight: 600 }}
-                >
-                  {fmtDay(game.started_at)}{" "}
-                  <span className="text-[#5b574e] italic font-normal">on</span>{" "}
-                  <span className="italic">
-                    {game.map_slug ?? "—"}
-                  </span>
-                </Link>
-                <div
-                  className="font-display"
-                  style={{ fontSize: 16 }}
-                >
-                  <span
-                    className={
-                      game.my_result === "win"
-                        ? "result-W"
-                        : game.my_result === "loss"
-                          ? "result-L"
-                          : ""
-                    }
+      {isLoading ? (
+        <p className="kicker py-6 flex items-center gap-2">
+          <Spinner size={12} /> Loading prior encounters…
+        </p>
+      ) : games.length === 0 ? (
+        <p className="kicker py-6 italic">
+          No prior meetings on record.
+        </p>
+      ) : (
+        <div className="space-y-6">
+          {games.map((g) => {
+            const note = notesById.get(g.id);
+            const hasNote = note && note.body_md.trim().length > 0;
+            const opp = g.participants.find((p) => !p.is_self);
+            return (
+              <article
+                key={g.id}
+                className={`pl-5 border-l-2 ${hasNote ? "border-[#7a6a4a]" : "border-[rgba(28,28,26,0.15)]"}`}
+              >
+                <div className="flex items-baseline justify-between pb-2 gap-4">
+                  <Link
+                    to="/games/$gameId"
+                    params={{ gameId: String(g.id) }}
+                    className="font-display hover:underline"
+                    style={{ fontSize: 20, fontWeight: 600 }}
                   >
-                    {game.my_result === "win"
-                      ? "Victory"
-                      : game.my_result === "loss"
-                        ? "Defeat"
-                        : "Draw"}
-                  </span>
-                  {opp && (
-                    <span className="text-[#5b574e] italic">
-                      {" "}
-                      · vs {opp.name}
+                    {fmtDay(g.started_at)}{" "}
+                    <span className="text-[#5b574e] italic font-normal">on</span>{" "}
+                    <span className="italic">
+                      {g.map_slug ? prettyMap(g.map_slug) : "—"}
                     </span>
-                  )}
-                  {game.my_rating_diff !== null && (
+                  </Link>
+                  <div className="font-display" style={{ fontSize: 15 }}>
                     <span
                       className={
-                        game.my_rating_diff < 0 ? "text-[#9b2b2b]" : ""
+                        g.my_result === "win"
+                          ? "result-W"
+                          : g.my_result === "loss"
+                            ? "result-L"
+                            : ""
                       }
                     >
-                      {" "}
-                      ·{" "}
-                      {game.my_rating_diff > 0
-                        ? `+${game.my_rating_diff}`
-                        : game.my_rating_diff < 0
-                          ? `−${Math.abs(game.my_rating_diff)}`
-                          : "0"}
+                      {g.my_result === "win"
+                        ? "Victory"
+                        : g.my_result === "loss"
+                          ? "Defeat"
+                          : g.my_result === "draw"
+                            ? "Draw"
+                            : "—"}
                     </span>
-                  )}
+                    {opp && (
+                      <span className="text-[#5b574e] italic">
+                        {" "}
+                        · vs {opp.name}
+                      </span>
+                    )}
+                    {g.my_rating_diff !== null && (
+                      <span
+                        className={g.my_rating_diff < 0 ? "text-[#9b2b2b]" : ""}
+                      >
+                        {" "}
+                        ·{" "}
+                        {g.my_rating_diff > 0
+                          ? `+${g.my_rating_diff}`
+                          : g.my_rating_diff < 0
+                            ? `−${Math.abs(g.my_rating_diff)}`
+                            : "0"}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="prose-note">
-                <ReactMarkdown>{note!.body_md}</ReactMarkdown>
-              </div>
-              {note?.updated_at && (
-                <p className="kicker pt-2" style={{ fontSize: 12 }}>
-                  Recorded {relative(note.updated_at)}.
-                </p>
-              )}
-            </article>
-          );
-        })}
+                {hasNote ? (
+                  <>
+                    <div className="prose-note">
+                      <ReactMarkdown>{note!.body_md}</ReactMarkdown>
+                    </div>
+                    {note?.updated_at && (
+                      <p className="kicker pt-2" style={{ fontSize: 12 }}>
+                        Recorded {relative(note.updated_at)}.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p
+                    className="font-display italic text-[#5b574e]"
+                    style={{ fontSize: 14 }}
+                  >
+                    <Link
+                      to="/games/$gameId"
+                      params={{ gameId: String(g.id) }}
+                      className="hover:underline"
+                    >
+                      No note on file — open the dossier →
+                    </Link>
+                  </p>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between pt-6">
+        <span className="kicker italic">
+          {games.length > 0 && (
+            <>
+              Showing {games.length} game{games.length === 1 ? "" : "s"}
+              {hasNextPage ? " · more on file" : " · end of record"}
+            </>
+          )}
+        </span>
+        {hasNextPage && (
+          <Button
+            variant="ghost"
+            onClick={onLoadMore}
+            disabled={isFetchingNextPage}
+          >
+            {isFetchingNextPage && <Spinner size={12} />}
+            {isFetchingNextPage ? "Loading…" : "Load more"}
+          </Button>
+        )}
       </div>
     </section>
   );

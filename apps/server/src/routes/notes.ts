@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
 import { noteUpsertBodySchema } from "@aoe4-almanac/shared";
 import type { AppContext } from "../auth/middleware.ts";
@@ -170,6 +170,31 @@ notesRoutes.put(
 );
 
 // --- Game notes ---
+// Batch fetch — used by list views that need to show note presence/excerpt
+// for many games at once. Returns only games that actually have a note row.
+notesRoutes.get("/games", (c) => {
+  const userId = c.get("userId");
+  const idsParam = c.req.query("ids") ?? "";
+  const ids = idsParam
+    .split(",")
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (ids.length === 0) return c.json({ notes: [] });
+  const rows = db()
+    .select()
+    .from(gameNotes)
+    .where(and(eq(gameNotes.userId, userId), inArray(gameNotes.gameId, ids)))
+    .all();
+  return c.json({
+    notes: rows.map((r) => ({
+      game_id: r.gameId,
+      body_md: r.bodyMd,
+      excerpt: excerpt(r.bodyMd),
+      updated_at: r.updatedAt,
+    })),
+  });
+});
+
 notesRoutes.get("/games/:gameId", (c) => {
   const userId = c.get("userId");
   const gameId = Number(c.req.param("gameId"));

@@ -74,16 +74,22 @@ async function doRunSync(
 
     let page = 1;
     let importedThisRun = 0;
+    let scannedThisRun = 0;
+    let totalCount: number | null = null;
     let highestSeenGameId = state.lastSeenGameId ?? 0;
     let shouldStop = false;
 
     while (!shouldStop) {
       const res = await getGamesPage(profileId, { since, page, limit: 50 });
       if (!res.games || res.games.length === 0) break;
+      if (totalCount === null && typeof res.total_count === "number") {
+        totalCount = res.total_count;
+      }
       const pageStart = performance.now();
       for (const raw of res.games) {
         const wasNew = ingestGame(userId, profileId, raw);
         if (wasNew) importedThisRun += 1;
+        scannedThisRun += 1;
         if (raw.game_id > highestSeenGameId) highestSeenGameId = raw.game_id;
         if (
           !full &&
@@ -100,6 +106,9 @@ async function doRunSync(
         page,
         games_in_page: res.games.length,
         imported_so_far: importedThisRun,
+        scanned_so_far: scannedThisRun,
+        total_count: totalCount,
+        full,
         ts: Math.floor(Date.now() / 1000),
       });
       log(

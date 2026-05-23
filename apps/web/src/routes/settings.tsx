@@ -3,6 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   api,
+  clearGameDataCache,
+  invalidateGameDataCache,
   qk,
   type DataCounts,
   type Me,
@@ -46,9 +48,7 @@ function Settings() {
       void qc.invalidateQueries({ queryKey: qk.me });
     }
     if (progress.last_event?.type === "sync.completed") {
-      void qc.invalidateQueries({ queryKey: ["games"] });
-      void qc.invalidateQueries({ queryKey: qk.syncStatus });
-      void qc.invalidateQueries({ queryKey: qk.dataCounts });
+      invalidateGameDataCache(qc);
     }
   }, [progress.last_event, qc]);
 
@@ -60,16 +60,22 @@ function Settings() {
   const linkMut = useMutation({
     mutationFn: (profile_id: number) =>
       api.post<{ ok: true }>("/me/link-aoe4world", { profile_id }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.me }),
+    onSuccess: () => {
+      // Wipe any cached data from a prior linked profile (or from the unlinked
+      // state) before the backfill begins repopulating it.
+      clearGameDataCache(qc);
+      void qc.invalidateQueries({ queryKey: qk.me });
+    },
   });
 
   const unlinkMut = useMutation({
     mutationFn: () => api.delete<{ ok: true }>("/me/link-aoe4world"),
     onSuccess: () => {
+      // Data is gone server-side — drop it from the cache rather than refetch
+      // (queries gated on `linked` won't refetch anyway, but old cached
+      // values shouldn't linger if the user re-links to a different profile).
+      clearGameDataCache(qc);
       void qc.invalidateQueries({ queryKey: qk.me });
-      void qc.invalidateQueries({ queryKey: qk.syncStatus });
-      void qc.invalidateQueries({ queryKey: ["games"] });
-      void qc.invalidateQueries({ queryKey: qk.dataCounts });
     },
   });
 
@@ -248,7 +254,11 @@ function Settings() {
                         <Button
                           variant="signet"
                           size="sm"
-                          onClick={() => linkMut.mutate(p.profile_id)}
+                          onClick={() => {
+                            linkMut.mutate(p.profile_id);
+                            setResults([]);
+                            setQuery("");
+                          }}
                           disabled={linkMut.isPending}
                         >
                           {linkMut.isPending &&
@@ -418,6 +428,18 @@ function UnlinkConfirmDialog({
   );
 }
 
+function fmtSeconds(s: number): string {
+  if (!isFinite(s) || s < 0) return "—";
+  const total = Math.round(s);
+  if (total < 60) return `${total}s`;
+  const m = Math.floor(total / 60);
+  const sec = total % 60;
+  if (m < 60) return `${m}m ${sec}s`;
+  const h = Math.floor(m / 60);
+  const min = m % 60;
+  return `${h}h ${min}m`;
+}
+
 function SyncProgressPanel({
   progress,
   linking,
@@ -425,6 +447,15 @@ function SyncProgressPanel({
   progress: ReturnType<typeof useSyncEvents>;
   linking: boolean;
 }) {
+  // Tick once a second while active so elapsed/ETA strings stay fresh between
+  // sync.page events.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!progress.active) return;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [progress.active]);
+
   const status = progress.error
     ? "Failed"
     : progress.completed
@@ -440,8 +471,32 @@ function SyncProgressPanel({
       ? "border-[#7a6a4a] bg-[rgba(122,106,74,0.08)]"
       : "border-[#9b2b2b] bg-[rgba(155,43,43,0.04)]";
 
+  // Show a % only on full backfills — incremental syncs reuse aoe4world's
+  // all-time total_count as the denominator, which would mislead.
+  const showPercent =
+    progress.active &&
+    progress.full &&
+    progress.total_count !== null &&
+    progress.total_count > 0;
+  const pct = showPercent
+    ? Math.min(100, Math.round((progress.scanned_so_far / (progress.total_count ?? 1)) * 100))
+    : null;
+
+  const elapsedMs =
+    progress.active && progress.started_at !== null
+      ? Date.now() - progress.started_at
+      : null;
+  const etaSeconds =
+    showPercent &&
+    elapsedMs !== null &&
+    progress.scanned_so_far > 0 &&
+    progress.total_count !== null
+      ? ((elapsedMs / 1000) * (progress.total_count - progress.scanned_so_far)) /
+        progress.scanned_so_far
+      : null;
+
   return (
-    <div className={`mb-4 border-l-2 ${accent} pl-4 py-3`}>
+    <div className={`mb-4 border-l-2 ${accent} px-4 py-3`}>
       <div
         className="flex items-center gap-3 font-display"
         style={{ fontSize: 18, fontWeight: 600 }}
@@ -451,12 +506,56 @@ function SyncProgressPanel({
         {progress.display_name && (
           <span className="kicker italic">· {progress.display_name}</span>
         )}
+        {pct !== null && (
+          <span className="ml-auto font-display tabular-nums" style={{ fontSize: 18 }}>
+            {pct}%
+          </span>
+        )}
       </div>
+
+      {showPercent && (
+        <div
+          className="mt-2 h-1.5 bg-[rgba(28,28,26,0.1)] overflow-hidden"
+          role="progressbar"
+          aria-valuenow={pct ?? 0}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            className="h-full bg-[#9b2b2b] transition-[width] duration-300 ease-out"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+
+      {progress.active && progress.full && !showPercent && (
+        <div className="mt-2 h-1.5 bg-[rgba(28,28,26,0.1)] overflow-hidden">
+          <div className="h-full w-1/3 bg-[#9b2b2b] animate-pulse" />
+        </div>
+      )}
+
       {(progress.active || progress.page > 0) && (
         <p className="kicker pt-1">
-          page {progress.page} · {progress.imported_so_far} new game
+          page {progress.page} ·{" "}
+          {progress.full && progress.total_count !== null ? (
+            <>
+              {progress.scanned_so_far} of {progress.total_count} scanned ·{" "}
+            </>
+          ) : null}
+          {progress.imported_so_far} new game
           {progress.imported_so_far === 1 ? "" : "s"} imported
           {progress.full ? " (full backfill)" : ""}
+        </p>
+      )}
+
+      {progress.active && elapsedMs !== null && (
+        <p className="kicker pt-0.5 flex items-baseline gap-3">
+          <span>{fmtSeconds(elapsedMs / 1000)} elapsed</span>
+          {etaSeconds !== null && (
+            <span className="italic text-[#5b574e]">
+              · ~{fmtSeconds(etaSeconds)} remaining
+            </span>
+          )}
         </p>
       )}
       {progress.completed && (

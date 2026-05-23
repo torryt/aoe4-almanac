@@ -21,6 +21,9 @@ export type SyncEvent =
       page: number;
       games_in_page: number;
       imported_so_far: number;
+      scanned_so_far: number;
+      total_count: number | null;
+      full: boolean;
       ts: number;
     }
   | {
@@ -43,8 +46,11 @@ export type SyncProgress = {
   page: number;
   games_in_page: number;
   imported_so_far: number;
+  scanned_so_far: number;
+  total_count: number | null;
   display_name: string | null;
   full: boolean;
+  started_at: number | null;
   last_event: SyncEvent | null;
   error: string | null;
   completed?: { imported: number; duration_ms: number; last_seen_game_id: number | null } | null;
@@ -55,8 +61,11 @@ const initial: SyncProgress = {
   page: 0,
   games_in_page: 0,
   imported_so_far: 0,
+  scanned_so_far: 0,
+  total_count: null,
   display_name: null,
   full: false,
+  started_at: null,
   last_event: null,
   error: null,
   completed: null,
@@ -79,13 +88,19 @@ export function useSyncEvents(): SyncProgress {
           next.completed = null;
           next.full = e.full;
           next.imported_so_far = 0;
+          next.scanned_so_far = 0;
+          next.total_count = null;
           next.page = 0;
           next.games_in_page = 0;
+          next.started_at = Date.now();
         } else if (e.type === "sync.page") {
           next.active = true;
           next.page = e.page;
           next.games_in_page = e.games_in_page;
           next.imported_so_far = e.imported_so_far;
+          next.scanned_so_far = e.scanned_so_far;
+          next.total_count = e.total_count;
+          next.full = e.full;
         } else if (e.type === "sync.completed") {
           next.active = false;
           next.completed = {

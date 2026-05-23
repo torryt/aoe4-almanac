@@ -1,3 +1,5 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 const BASE = "/api/v1";
 
 export class ApiError extends Error {
@@ -74,6 +76,8 @@ export const qk = {
   mapNotes: ["notes", "maps"] as const,
   mapNote: (slug: string) => ["notes", "map", slug] as const,
   gameNote: (id: number) => ["notes", "game", id] as const,
+  gameNotesBatch: (ids: number[]) =>
+    ["notes", "games", "batch", [...ids].sort((a, b) => a - b).join(",")] as const,
   statsByCiv: (myCiv: string) => ["stats", "by-civ", myCiv] as const,
   statsMatchups: ["stats", "matchups"] as const,
   statsByMap: ["stats", "by-map"] as const,
@@ -83,6 +87,32 @@ export const qk = {
   opponent: (key: string) => ["opponent", key] as const,
   dataCounts: ["me", "data-counts"] as const,
 };
+
+// Query-key prefixes for any cache derived from imported game data. Wiped on
+// link (data identity changes) and unlink (data deleted). Civ / matchup / map
+// notes are intentionally excluded — they belong to the user, not the profile.
+const GAME_DATA_KEY_PREFIXES = [
+  ["games"],
+  ["game"],
+  ["sync"],
+  ["stats"],
+  ["opponents"],
+  ["opponent"],
+  ["notes", "game"],
+  qk.dataCounts,
+] as const;
+
+export function clearGameDataCache(qc: QueryClient): void {
+  for (const key of GAME_DATA_KEY_PREFIXES) {
+    qc.removeQueries({ queryKey: key as readonly unknown[] });
+  }
+}
+
+export function invalidateGameDataCache(qc: QueryClient): void {
+  for (const key of GAME_DATA_KEY_PREFIXES) {
+    void qc.invalidateQueries({ queryKey: key as readonly unknown[] });
+  }
+}
 
 export type DataCounts = {
   current_profile_id: number | null;
@@ -197,6 +227,13 @@ export type GameDto = {
   my_rating: number | null;
   my_rating_diff: number | null;
   participants: ParticipantDto[];
+};
+
+export type GameNoteBatchEntry = {
+  game_id: number;
+  body_md: string;
+  excerpt: string;
+  updated_at: number;
 };
 
 export type SyncStatus = {

@@ -38,24 +38,40 @@ function fmtDuration(s: number | null | undefined): string {
 function Dashboard() {
   const me = useQuery({ queryKey: qk.me, queryFn: () => api.get<Me>("/me") });
   const { nameOf } = useCivNames();
+
+  const linked =
+    me.data?.aoe4world_profile_id !== null &&
+    me.data?.aoe4world_profile_id !== undefined;
+
   const recent = useQuery({
     queryKey: qk.games({ limit: 10 }),
     queryFn: () => api.get<{ games: GameDto[] }>("/games?limit=10"),
+    enabled: linked,
   });
   const stats = useQuery({
     queryKey: qk.statsRecent,
     queryFn: () => api.get<RecentStats>("/stats/recent"),
+    enabled: linked,
   });
   const sync = useQuery({
     queryKey: qk.syncStatus,
     queryFn: () => api.get<SyncStatus>("/sync/status"),
     refetchInterval: 5000,
+    enabled: linked,
   });
   const progress = useSyncEvents();
 
-  const linked =
-    me.data?.aoe4world_profile_id !== null &&
-    me.data?.aoe4world_profile_id !== undefined;
+  if (me.isLoading) {
+    return (
+      <section className="spread px-10 pt-16 pb-20">
+        <p className="kicker">Loading…</p>
+      </section>
+    );
+  }
+
+  if (!linked) {
+    return <UnlinkedEmptyState />;
+  }
 
   const games30 = stats.data?.last_30d.games ?? 0;
   const wins30 = stats.data?.last_30d.wins ?? 0;
@@ -436,6 +452,172 @@ function Dashboard() {
         </div>
       </section>
     </>
+  );
+}
+
+function UnlinkedEmptyState() {
+  return (
+    <section className="spread px-10 pt-16 pb-24">
+      <div className="grid grid-cols-12 gap-10">
+        <div className="col-span-8">
+          <div className="flex items-center gap-4">
+            <span className="eyebrow">Notice to the Reader</span>
+            <hr className="rule-faint flex-1" />
+            <span className="eyebrow">First edition</span>
+          </div>
+
+          <h2
+            className="font-display text-[#1c1c1a] pt-8"
+            style={{
+              fontSize: 84,
+              lineHeight: 0.95,
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            The Almanac
+            <br />
+            stands empty.
+          </h2>
+
+          <hr className="rule-gold my-6" />
+
+          <p
+            className="font-display italic text-[#5b574e]"
+            style={{ fontSize: 22, lineHeight: 1.4, maxWidth: 620 }}
+          >
+            No campaigns have yet been entered into these pages. Bind the
+            Almanac to your{" "}
+            <span className="not-italic font-semibold text-[#9b2b2b]">
+              aoe4world
+            </span>{" "}
+            profile, and the records shall fill themselves — automatically,
+            and in good order.
+          </p>
+
+          <div className="pt-10 flex items-center gap-6">
+            <Link
+              to="/settings"
+              className="font-display"
+              style={{
+                fontSize: 20,
+                fontWeight: 600,
+                background: "#9b2b2b",
+                color: "#f1ece4",
+                padding: "14px 28px",
+                letterSpacing: "0.02em",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              Link aoe4world profile →
+            </Link>
+            <span className="kicker italic">
+              No account is created. Records are stored privately.
+            </span>
+          </div>
+
+          <hr className="rule mt-12" />
+
+          <div className="grid grid-cols-3 gap-8 pt-8">
+            <Step
+              n="i."
+              title="Open the Desk"
+              body={
+                <>
+                  Visit{" "}
+                  <Link to="/settings" className="underline">
+                    Settings
+                  </Link>{" "}
+                  — the proprietor's tools of the trade.
+                </>
+              }
+            />
+            <Step
+              n="ii."
+              title="Search your name"
+              body="Type your in-game alias. A list of candidate profiles will appear from aoe4world."
+            />
+            <Step
+              n="iii."
+              title="Bind the Almanac"
+              body="Confirm the match, and the records shall begin syncing forthwith."
+            />
+          </div>
+        </div>
+
+        <aside className="col-span-4 border-l border-[rgba(28,28,26,0.15)] pl-8">
+          <div className="eyebrow-tight pb-4">From the desk</div>
+          <p className="marginalia">
+            Until a profile is bound, the Almanac shows no figures, holds no
+            ledger, and renders no judgements. This is by design — there is
+            nothing yet to remember.
+          </p>
+
+          <hr className="rule-faint my-6" />
+
+          <div className="eyebrow-tight pb-3">What you gain, once linked</div>
+          <ul className="space-y-3 font-display" style={{ fontSize: 16 }}>
+            <Bullet>An auto-updating ledger of ranked matches</Bullet>
+            <Bullet>Per-civilisation win-rates and matchup tables</Bullet>
+            <Bullet>An atlas of maps you have warred upon</Bullet>
+            <Bullet>A dossier on every recurring opponent</Bullet>
+            <Bullet>Private notes, kept beside each record</Bullet>
+          </ul>
+
+          <hr className="rule-faint my-6" />
+
+          <p className="marginalia italic">
+            The Almanac is read by one reader only — yourself.
+          </p>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function Step({
+  n,
+  title,
+  body,
+}: {
+  n: string;
+  title: string;
+  body: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div
+        className="font-display text-[#9b2b2b]"
+        style={{ fontSize: 32, fontWeight: 600, lineHeight: 1 }}
+      >
+        {n}
+      </div>
+      <div
+        className="font-display pt-2"
+        style={{ fontSize: 22, fontWeight: 600, lineHeight: 1.2 }}
+      >
+        {title}
+      </div>
+      <p
+        className="font-display text-[#5b574e] pt-2"
+        style={{ fontSize: 15, lineHeight: 1.5 }}
+      >
+        {body}
+      </p>
+    </div>
+  );
+}
+
+function Bullet({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex gap-3">
+      <span className="text-[#9b2b2b]" style={{ lineHeight: 1.4 }}>
+        §
+      </span>
+      <span style={{ lineHeight: 1.4 }}>{children}</span>
+    </li>
   );
 }
 

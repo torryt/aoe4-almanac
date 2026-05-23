@@ -21,6 +21,9 @@ export type SyncEvent =
       page: number;
       games_in_page: number;
       imported_so_far: number;
+      scanned_so_far: number;
+      total_count: number | null;
+      full: boolean;
       ts: number;
     }
   | {
