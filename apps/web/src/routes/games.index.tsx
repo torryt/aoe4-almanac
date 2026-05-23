@@ -100,7 +100,7 @@ function GamesList() {
 
           <div className="mt-8 space-y-5">
             <div>
-              <Label>My Civilisation</Label>
+              <Label>My Civilization</Label>
               <Select
                 value={search.civ ?? "__all"}
                 onValueChange={(v) => update("civ", v === "__all" ? undefined : v)}

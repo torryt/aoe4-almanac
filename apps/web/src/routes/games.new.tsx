@@ -135,7 +135,7 @@ function GameNew() {
 
           <div className="grid grid-cols-2 gap-8">
             <div>
-              <Label>My civilisation</Label>
+              <Label>My civilization</Label>
               <Select value={myCiv} onValueChange={setMyCiv}>
                 <SelectTrigger>
                   <SelectValue />
@@ -151,7 +151,7 @@ function GameNew() {
               </Select>
             </div>
             <div>
-              <Label>Opponent civilisation</Label>
+              <Label>Opponent civilization</Label>
               <Select
                 value={oppCiv || "__none"}
                 onValueChange={(v) => setOppCiv(v === "__none" ? "" : v)}

@@ -997,7 +997,7 @@ function UnlinkedEmptyState() {
           <div className="eyebrow-tight pb-3">What you gain, once linked</div>
           <ul className="space-y-3 font-display" style={{ fontSize: 16 }}>
             <Bullet>An auto-updating ledger of ranked matches</Bullet>
-            <Bullet>Per-civilisation win-rates and matchup tables</Bullet>
+            <Bullet>Per-civilization win-rates and matchup tables</Bullet>
             <Bullet>An atlas of maps you have warred upon</Bullet>
             <Bullet>A dossier on every recurring opponent</Bullet>
             <Bullet>Private notes, kept beside each record</Bullet>

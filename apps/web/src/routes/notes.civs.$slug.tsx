@@ -92,7 +92,7 @@ function CivNoteEditor() {
       <div className="flex items-center gap-4 pb-6">
         <span className="eyebrow">The Standing Note</span>
         <hr className="rule-faint flex-1" />
-        <span className="eyebrow">{civ?.is_variant ? "Variant" : "Civilisation"}</span>
+        <span className="eyebrow">{civ?.is_variant ? "Variant" : "Civilization"}</span>
       </div>
 
       <div className="grid grid-cols-12 gap-10">

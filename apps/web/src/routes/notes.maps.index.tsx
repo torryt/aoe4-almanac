@@ -86,7 +86,7 @@ function MapNotesIndex() {
           <p className="kicker" style={{ fontSize: 14 }}>
             <span className="smallcaps text-[#5b574e]">A note on the figures</span>{" "}
             — W/L is given across every recorded game on the map, not filtered
-            by civilisation.
+            by civilization.
           </p>
         </div>
 

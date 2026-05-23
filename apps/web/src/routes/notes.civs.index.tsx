@@ -59,7 +59,7 @@ function CivNotesIndex() {
           </h2>
           <hr className="rule-gold my-5" />
           <p className="marginalia">
-            Each civilisation carries a general note — opening preferences,
+            Each civilization carries a general note — opening preferences,
             economic rhythm, signature units. Variants are recorded as fully
             distinct entries beneath their parent banner.
           </p>
