@@ -1,20 +1,10 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import ReactMarkdown from "react-markdown";
 import { KNIGHTS_TEMPLAR, canonicalCivSlug } from "@aoe4-almanac/shared";
-import {
-  api,
-  qk,
-  type Civ,
-  type GameDto,
-  type GameNoteBatchEntry,
-} from "../lib/api.ts";
+import { api, qk, type Civ } from "../lib/api.ts";
 import { useCivNames } from "../lib/civNames.ts";
-import { Spinner } from "../components/Spinner.tsx";
-import { prettyMap } from "./index.tsx";
 import {
-  Button,
   Select,
   SelectContent,
   SelectItem,
@@ -93,8 +83,8 @@ function MatchupGrid() {
 
   return (
     <section className="spread px-10 pt-16 pb-20">
-      <div className="grid grid-cols-12 gap-10 items-start">
-        <div className="col-span-3">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 items-start">
+        <div className="xl:col-span-3">
           <div className="eyebrow-tight pb-4">A Cartography of Opponents</div>
           <h2
             className="font-display text-[#1c1c1a]"
@@ -113,7 +103,7 @@ function MatchupGrid() {
           </h2>
           <hr className="rule-gold my-5" />
           <p className="marginalia">
-            Read the rows as the proprietor's civilisation, the columns as the
+            Read the rows as the proprietor's civilization, the columns as the
             opponent's. A{" "}
             <span className="text-[#9b2b2b]">•</span> indicates a standing note
             on file; an open ring marks an absence. Variant civilisations are
@@ -192,7 +182,7 @@ function MatchupGrid() {
           </Select>
         </div>
 
-        <div className="col-span-9">
+        <div className="xl:col-span-9">
           <div
             style={{
               background: "#ece6db",
@@ -203,7 +193,7 @@ function MatchupGrid() {
           >
             <div className="flex items-baseline justify-between pb-3">
               <div className="eyebrow-tight">
-                Your civilisation × Opponent's civilisation
+                Your civilization × Opponent's civilization
               </div>
               <div className="kicker" style={{ fontSize: 12 }}>
                 {totalCells} cells · {notedCount} noted ·{" "}
@@ -214,11 +204,12 @@ function MatchupGrid() {
             {orderedCivs.length === 0 ? (
               <div className="kicker py-6">Loading civilisations…</div>
             ) : (
-              <>
+              <div style={{ overflowX: "auto" }}>
+                <div>
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: `138px repeat(${orderedCivs.length}, 1fr)`,
+                    gridTemplateColumns: `138px repeat(${orderedCivs.length}, minmax(28px, 1fr))`,
                     alignItems: "end",
                   }}
                 >
@@ -249,7 +240,7 @@ function MatchupGrid() {
                       key={rowCiv.slug}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: `138px repeat(${orderedCivs.length}, 1fr)`,
+                        gridTemplateColumns: `138px repeat(${orderedCivs.length}, minmax(28px, 1fr))`,
                         alignItems: "stretch",
                       }}
                     >
@@ -316,7 +307,8 @@ function MatchupGrid() {
                     </div>
                   ),
                 )}
-              </>
+                </div>
+              </div>
             )}
 
             <hr className="rule-faint mt-5" />
@@ -335,193 +327,9 @@ function MatchupGrid() {
             </div>
           </div>
 
-          <RecentGames myCiv={my_civ} />
         </div>
       </div>
     </section>
   );
 }
 
-const PAGE_SIZE = 10;
-
-function fmtDay(unix: number): string {
-  const d = new Date(unix * 1000);
-  return `${d.getDate()} ${d.toLocaleString(undefined, { month: "short" })}`;
-}
-
-function RecentGames({ myCiv }: { myCiv: string | undefined }) {
-  const { nameOf } = useCivNames();
-
-  const filter = myCiv ? { civ: canonicalCivSlug(myCiv) } : {};
-  const baseQs = new URLSearchParams();
-  for (const [k, v] of Object.entries(filter)) {
-    if (v) baseQs.set(k, v);
-  }
-  baseQs.set("limit", String(PAGE_SIZE));
-
-  const gamesQ = useInfiniteQuery({
-    queryKey: qk.games({ ...filter, limit: PAGE_SIZE, paged: true }),
-    initialPageParam: null as number | null,
-    queryFn: ({ pageParam }) => {
-      const qs = new URLSearchParams(baseQs);
-      if (pageParam !== null) qs.set("cursor", String(pageParam));
-      return api.get<{ games: GameDto[]; next_cursor: number | null }>(
-        `/games?${qs.toString()}`,
-      );
-    },
-    getNextPageParam: (last) => last.next_cursor,
-  });
-
-  const games = gamesQ.data?.pages.flatMap((p) => p.games) ?? [];
-  const ids = games.map((g) => g.id);
-
-  const notesQ = useQuery({
-    queryKey: qk.gameNotesBatch(ids),
-    queryFn: () =>
-      api.get<{ notes: GameNoteBatchEntry[] }>(
-        `/notes/games?ids=${ids.join(",")}`,
-      ),
-    enabled: ids.length > 0,
-  });
-  const notesById = new Map<number, GameNoteBatchEntry>();
-  for (const n of notesQ.data?.notes ?? []) notesById.set(n.game_id, n);
-
-  return (
-    <div className="mt-10">
-      <div className="flex items-center gap-4 pb-4">
-        <span className="eyebrow">From the field</span>
-        <hr className="rule-faint flex-1" />
-        <span className="eyebrow">
-          {myCiv ? `${nameOf(myCiv)} only` : "All civilisations"}
-        </span>
-      </div>
-
-      {gamesQ.isLoading ? (
-        <p className="kicker py-6 flex items-center gap-2">
-          <Spinner size={12} /> Loading recent games…
-        </p>
-      ) : games.length === 0 ? (
-        <p className="kicker py-6 italic">
-          No games on record{myCiv ? ` as ${nameOf(myCiv)}` : ""}.
-        </p>
-      ) : (
-        <ul className="divide-y divide-[rgba(28,28,26,0.1)] border-t border-b border-[rgba(28,28,26,0.18)]">
-          {games.map((g) => (
-            <GameRow
-              key={g.id}
-              game={g}
-              note={notesById.get(g.id) ?? null}
-              nameOf={nameOf}
-            />
-          ))}
-        </ul>
-      )}
-
-      <div className="flex items-center justify-between pt-6">
-        <span className="kicker italic">
-          {games.length > 0 && (
-            <>
-              Showing {games.length} game{games.length === 1 ? "" : "s"}
-              {gamesQ.hasNextPage ? " · more on file" : " · end of record"}
-            </>
-          )}
-        </span>
-        {gamesQ.hasNextPage && (
-          <Button
-            variant="ghost"
-            onClick={() => void gamesQ.fetchNextPage()}
-            disabled={gamesQ.isFetchingNextPage}
-          >
-            {gamesQ.isFetchingNextPage && <Spinner size={12} />}
-            {gamesQ.isFetchingNextPage ? "Loading…" : "Load more"}
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function GameRow({
-  game,
-  note,
-  nameOf,
-}: {
-  game: GameDto;
-  note: GameNoteBatchEntry | null;
-  nameOf: (slug: string) => string;
-}) {
-  const opp = game.participants.find((p) => !p.is_self);
-  const resultClass =
-    game.my_result === "win"
-      ? "result-W"
-      : game.my_result === "loss"
-        ? "result-L"
-        : "result-D";
-  const resultLetter =
-    game.my_result === "win"
-      ? "W"
-      : game.my_result === "loss"
-        ? "L"
-        : game.my_result === "draw"
-          ? "D"
-          : "—";
-
-  return (
-    <li className="py-3 px-1 hover:bg-[rgba(28,28,26,0.04)]">
-      <Link
-        to="/games/$gameId"
-        params={{ gameId: String(game.id) }}
-        className="flex items-baseline gap-4"
-      >
-        <div
-          className="font-display"
-          style={{ fontSize: 17, fontWeight: 600, minWidth: 64 }}
-        >
-          {fmtDay(game.started_at)}
-        </div>
-        <div className="font-display flex-1" style={{ fontSize: 17 }}>
-          <span className="text-[#9b2b2b]">{nameOf(game.my_civ_slug)}</span>{" "}
-          <span className="text-[#5b574e] italic">vs</span>{" "}
-          {opp ? (
-            <span>{nameOf(opp.civ_slug)}</span>
-          ) : (
-            <span className="text-[#5b574e] italic">—</span>
-          )}
-          {game.map_slug && (
-            <span
-              className="font-display italic text-[#5b574e] pl-2"
-              style={{ fontSize: 15 }}
-            >
-              · {prettyMap(game.map_slug)}
-            </span>
-          )}
-        </div>
-        <div
-          className={`font-display ${resultClass}`}
-          style={{ fontSize: 17, minWidth: 28, textAlign: "center" }}
-        >
-          {resultLetter}
-        </div>
-        <div
-          className={`font-display ${game.my_rating_diff !== null && game.my_rating_diff < 0 ? "text-[#9b2b2b]" : ""}`}
-          style={{ fontSize: 15, minWidth: 48, textAlign: "right" }}
-        >
-          {game.my_rating_diff === null
-            ? "—"
-            : game.my_rating_diff < 0
-              ? `−${Math.abs(game.my_rating_diff)}`
-              : `+${game.my_rating_diff}`}
-        </div>
-      </Link>
-
-      {note && note.body_md.trim() && (
-        <div className="mt-2 ml-1 border-l-2 border-[#7a6a4a] pl-4">
-          <div className="eyebrow-tight pb-1">Note on file</div>
-          <div className="prose-note">
-            <ReactMarkdown>{note.body_md}</ReactMarkdown>
-          </div>
-        </div>
-      )}
-    </li>
-  );
-}
