@@ -1,0 +1,1993 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1440" />
+    <title>The Templar Almanac — Vol. III, Issue 7</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400;1,500;1,600&family=Inter+Tight:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      // Tailwind config must be set BEFORE the CDN script loads.
+      window.tailwind = window.tailwind || {};
+      window.tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              paper: "#f1ece4",
+              "paper-raised": "#e8e1d4",
+              "paper-deep": "#ddd5c4",
+              ink: "#1c1c1a",
+              graphite: "#5b574e",
+              red: {
+                signature: "#9b2b2b",
+                deep: "#7a1f1f",
+              },
+              gold: {
+                dim: "#7a6a4a",
+                pale: "#b8a87f",
+              },
+            },
+            fontFamily: {
+              display: ['"Cormorant Garamond"', "Georgia", "serif"],
+              sans: ['"Inter Tight"', "system-ui", "sans-serif"],
+            },
+            letterSpacing: {
+              eyebrow: "0.22em",
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      html,
+      body {
+        background: #f1ece4;
+        color: #1c1c1a;
+        font-family: "Inter Tight", system-ui, sans-serif;
+        font-feature-settings: "ss01", "cv11", "ss03";
+      }
+
+      * {
+        font-variant-numeric: tabular-nums;
+      }
+
+      .font-display {
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-feature-settings: "lnum", "tnum";
+      }
+
+      /* Paper noise — single tiny SVG, very low opacity, fixed so it doesn't
+         shift on scroll. Gives the whole page a subtle tooth. */
+      .paper-noise::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0.5;
+        mix-blend-mode: multiply;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.11  0 0 0 0 0.10  0 0 0 0 0.09  0 0 0 0.055 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+      }
+
+      .vignette::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2;
+        background: radial-gradient(
+          ellipse at center,
+          transparent 55%,
+          rgba(28, 28, 26, 0.05) 100%
+        );
+      }
+
+      .eyebrow {
+        font-family: "Inter Tight", sans-serif;
+        font-size: 10px;
+        line-height: 1;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        font-weight: 500;
+        color: #5b574e;
+      }
+
+      .eyebrow-tight {
+        font-family: "Inter Tight", sans-serif;
+        font-size: 9.5px;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: #5b574e;
+      }
+
+      .smallcaps {
+        font-variant-caps: all-small-caps;
+        letter-spacing: 0.08em;
+      }
+
+      .rule {
+        border: 0;
+        border-top: 1px solid rgba(28, 28, 26, 0.18);
+      }
+      .rule-faint {
+        border: 0;
+        border-top: 1px solid rgba(28, 28, 26, 0.1);
+      }
+      .rule-gold {
+        border: 0;
+        border-top: 1px solid #7a6a4a;
+      }
+      .rule-double {
+        border: 0;
+        border-top: 1px solid rgba(28, 28, 26, 0.6);
+        border-bottom: 1px solid rgba(28, 28, 26, 0.6);
+        height: 4px;
+      }
+      .rule-thick {
+        border: 0;
+        border-top: 2px solid #1c1c1a;
+      }
+
+      .dropcap::first-letter {
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-weight: 700;
+        float: left;
+        font-size: 64px;
+        line-height: 0.85;
+        padding: 6px 10px 0 0;
+        color: #1c1c1a;
+      }
+
+      /* Ornament — a thin centered fleuron made of typography. */
+      .ornament {
+        font-family: "Cormorant Garamond", serif;
+        font-style: italic;
+        color: #7a6a4a;
+        letter-spacing: 0.6em;
+        font-size: 13px;
+      }
+
+      /* Matchup grid */
+      .grid-cell {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        border-right: 1px solid rgba(28, 28, 26, 0.08);
+        border-bottom: 1px solid rgba(28, 28, 26, 0.08);
+        background: transparent;
+        transition: background-color 120ms ease;
+        cursor: pointer;
+      }
+      .grid-cell:hover {
+        background: rgba(28, 28, 26, 0.06);
+      }
+      .grid-cell.selected {
+        background: rgba(155, 43, 43, 0.08);
+      }
+      .grid-cell .dot {
+        position: absolute;
+        top: 38%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+      .grid-cell .dot.filled {
+        background: #9b2b2b;
+      }
+      .grid-cell .dot.hollow {
+        border: 1px solid rgba(28, 28, 26, 0.3);
+      }
+      .grid-cell .wr {
+        position: absolute;
+        bottom: 4px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 8.5px;
+        font-weight: 500;
+        color: #5b574e;
+        letter-spacing: 0.02em;
+      }
+      .grid-cell.diag {
+        background: repeating-linear-gradient(
+          45deg,
+          transparent 0,
+          transparent 4px,
+          rgba(28, 28, 26, 0.07) 4px,
+          rgba(28, 28, 26, 0.07) 5px
+        );
+        cursor: default;
+      }
+      .grid-cell.diag:hover {
+        background: repeating-linear-gradient(
+          45deg,
+          transparent 0,
+          transparent 4px,
+          rgba(28, 28, 26, 0.07) 4px,
+          rgba(28, 28, 26, 0.07) 5px
+        );
+      }
+
+      .row-label {
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: 13.5px;
+        font-weight: 500;
+        text-align: right;
+        padding-right: 10px;
+        color: #1c1c1a;
+        white-space: nowrap;
+        line-height: 1;
+      }
+      .row-label.main {
+        color: #9b2b2b;
+        font-weight: 700;
+      }
+      .row-label.variant {
+        font-size: 12px;
+        font-style: italic;
+        color: #5b574e;
+        padding-left: 14px;
+        position: relative;
+      }
+      .row-label.variant.main {
+        color: #9b2b2b;
+        font-style: italic;
+        font-weight: 600;
+      }
+      .row-label.variant::before {
+        content: "";
+        position: absolute;
+        left: 8px;
+        top: 50%;
+        width: 4px;
+        height: 1px;
+        background: rgba(28, 28, 26, 0.4);
+      }
+
+      .col-label {
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: 12px;
+        font-weight: 500;
+        color: #1c1c1a;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        white-space: nowrap;
+        line-height: 1;
+        padding-bottom: 6px;
+      }
+      .col-label.variant {
+        font-style: italic;
+        color: #5b574e;
+        font-size: 11px;
+      }
+
+      /* Game-log table */
+      .log-row {
+        display: grid;
+        grid-template-columns: 64px 1.4fr 1.2fr 80px 60px 70px;
+        gap: 24px;
+        padding: 14px 0;
+        border-bottom: 1px solid rgba(28, 28, 26, 0.1);
+        align-items: baseline;
+      }
+      .log-row:last-child {
+        border-bottom: 0;
+      }
+      .result-W {
+        color: #1c1c1a;
+        font-weight: 600;
+      }
+      .result-L {
+        color: #9b2b2b;
+        font-weight: 600;
+      }
+
+      /* Magazine textarea */
+      textarea.essay {
+        width: 100%;
+        background: transparent;
+        border: 0;
+        outline: 0;
+        resize: none;
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: 18px;
+        line-height: 1.55;
+        color: #1c1c1a;
+        font-weight: 400;
+      }
+      textarea.essay::selection {
+        background: rgba(155, 43, 43, 0.18);
+      }
+
+      .map-card {
+        background: #e8e1d4;
+        padding: 22px 22px 20px;
+        border-top: 2px solid #1c1c1a;
+        position: relative;
+      }
+      .map-card .corner {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        font-family: "Cormorant Garamond", serif;
+        font-style: italic;
+        font-size: 11px;
+        color: #7a6a4a;
+      }
+
+      .stat-block {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 6px 18px;
+        font-size: 13px;
+      }
+      .stat-block dt {
+        font-family: "Inter Tight", sans-serif;
+        font-size: 10px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: #5b574e;
+        font-weight: 500;
+        align-self: center;
+      }
+      .stat-block dd {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 17px;
+        color: #1c1c1a;
+        font-weight: 500;
+        line-height: 1;
+      }
+
+      .pull-quote {
+        font-family: "Cormorant Garamond", serif;
+        font-style: italic;
+        font-size: 22px;
+        line-height: 1.35;
+        color: #1c1c1a;
+        border-left: 2px solid #9b2b2b;
+        padding-left: 18px;
+      }
+
+      .ticker {
+        font-family: "Inter Tight", sans-serif;
+        font-size: 11px;
+        color: #5b574e;
+        font-style: italic;
+        letter-spacing: 0.01em;
+      }
+      .ticker .live::before {
+        content: "";
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #9b2b2b;
+        margin-right: 7px;
+        transform: translateY(-1px);
+      }
+
+      .marginalia {
+        font-family: "Cormorant Garamond", serif;
+        font-style: italic;
+        font-size: 13px;
+        color: #5b574e;
+        line-height: 1.5;
+      }
+
+      /* Bracket grouping for civ variants */
+      .civ-bracket {
+        position: relative;
+      }
+      .civ-bracket::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 14px;
+        bottom: 14px;
+        width: 1px;
+        background: rgba(28, 28, 26, 0.25);
+      }
+
+      .number-mega {
+        font-family: "Cormorant Garamond", serif;
+        font-weight: 700;
+        font-size: 196px;
+        line-height: 0.82;
+        letter-spacing: -0.04em;
+        color: #1c1c1a;
+      }
+      .number-mega .slash {
+        color: #9b2b2b;
+        font-weight: 500;
+        font-style: italic;
+      }
+      .number-mega .denom {
+        color: #5b574e;
+        font-weight: 500;
+        font-style: italic;
+      }
+
+      .kicker {
+        font-family: "Cormorant Garamond", serif;
+        font-style: italic;
+        font-size: 16px;
+        color: #5b574e;
+      }
+
+      /* Spread divider */
+      .spread {
+        scroll-margin-top: 40px;
+      }
+
+      /* Subtle inline "stitch" */
+      .stitch {
+        display: inline-block;
+        width: 24px;
+        height: 1px;
+        background: #7a6a4a;
+        vertical-align: middle;
+        margin: 0 10px 4px;
+      }
+
+      /* Pagination */
+      .folio {
+        font-family: "Cormorant Garamond", serif;
+        font-style: italic;
+        font-size: 12px;
+        color: #7a6a4a;
+        letter-spacing: 0.08em;
+      }
+    </style>
+  </head>
+  <body class="paper-noise vignette">
+    <div class="relative z-10 mx-auto" style="max-width: 1320px">
+      <!-- ============================================================ -->
+      <!-- MASTHEAD                                                     -->
+      <!-- ============================================================ -->
+      <header class="pt-12 pb-4 px-10">
+        <div class="flex items-end justify-between">
+          <div class="flex items-baseline gap-6 text-graphite">
+            <span class="eyebrow">Vol. III</span>
+            <span class="eyebrow">No. 7</span>
+            <span class="eyebrow">Spring Edition</span>
+          </div>
+          <div class="eyebrow">Saturday, 23 May MMXXVI</div>
+        </div>
+
+        <hr class="rule-faint mt-3" />
+
+        <div class="flex items-center justify-center pt-8 pb-2">
+          <span class="ornament">&mdash; &nbsp; &sect; &nbsp; &mdash;</span>
+        </div>
+
+        <h1
+          class="font-display text-center text-ink"
+          style="
+            font-size: 96px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 0.95;
+          "
+        >
+          The Templar Almanac
+        </h1>
+
+        <p
+          class="font-display italic text-center text-graphite pt-3"
+          style="font-size: 19px"
+        >
+          A private record of campaigns waged on the ranked ladder
+          <span class="stitch"></span> kept by one player, in good faith
+        </p>
+
+        <div class="flex items-center justify-center pt-6">
+          <hr class="rule-gold flex-1" />
+          <span class="eyebrow-tight mx-6 text-gold-dim">
+            Established Anno Domini MMXXIV
+          </span>
+          <hr class="rule-gold flex-1" />
+        </div>
+
+        <div class="flex items-end justify-between pt-5">
+          <div class="ticker">
+            <span class="live"
+              >Reading from aoe4world &middot; last sync 14 seconds ago
+              &middot; 2,341 records on file</span
+            >
+          </div>
+          <div class="folio">page i</div>
+        </div>
+      </header>
+
+      <!-- ============================================================ -->
+      <!-- LEAD SPREAD / DASHBOARD                                       -->
+      <!-- ============================================================ -->
+      <section class="spread px-10 pt-16 pb-20">
+        <div class="grid grid-cols-12 gap-10">
+          <!-- Lead column 8/12 -->
+          <div class="col-span-8">
+            <div class="flex items-center gap-4">
+              <span class="eyebrow">The Lead</span>
+              <hr class="rule-faint flex-1" />
+              <span class="eyebrow">Season XII &middot; through 23 May</span>
+            </div>
+
+            <p
+              class="font-display italic text-graphite pt-8"
+              style="font-size: 22px; line-height: 1.35"
+            >
+              In which the proprietor has, since the first of March, played
+            </p>
+
+            <div class="flex items-baseline gap-8 pt-2">
+              <div class="number-mega">
+                58<span class="denom" style="font-size: 96px">g</span>
+              </div>
+              <div class="pb-4 max-w-[260px]">
+                <p
+                  class="font-display"
+                  style="font-size: 19px; line-height: 1.35"
+                >
+                  ranked matches as
+                  <span class="text-red-signature font-semibold"
+                    >Knights Templar</span
+                  >, a variant of the French, advancing the rating by
+                  <span class="font-semibold">+87</span> and arriving, at
+                  length, in Conqueror III.
+                </p>
+              </div>
+            </div>
+
+            <p class="kicker pt-6">
+              <span class="smallcaps text-graphite">In summary</span> &mdash;
+              thirty&#8209;four victories against twenty&#8209;four defeats; a
+              win rate that would have been the envy of last season's self,
+              who closed at fifty&#8209;one and a quarter percent.
+            </p>
+
+            <hr class="rule mt-10" />
+
+            <!-- Secondary stats row -->
+            <div class="grid grid-cols-5 pt-6 gap-6">
+              <div>
+                <div class="eyebrow-tight pb-3">Record</div>
+                <div
+                  class="font-display"
+                  style="font-size: 44px; line-height: 1; font-weight: 600"
+                >
+                  34<span class="text-graphite font-normal italic">&ndash;</span>24
+                </div>
+                <div class="kicker pt-2" style="font-size: 13px">
+                  58.6% &middot; +10
+                </div>
+              </div>
+              <div>
+                <div class="eyebrow-tight pb-3">Rating</div>
+                <div
+                  class="font-display"
+                  style="font-size: 44px; line-height: 1; font-weight: 600"
+                >
+                  1,612
+                </div>
+                <div class="kicker pt-2" style="font-size: 13px">
+                  <span class="text-red-signature">&uarr;</span> +87 season
+                </div>
+              </div>
+              <div>
+                <div class="eyebrow-tight pb-3">Streak</div>
+                <div
+                  class="font-display"
+                  style="font-size: 44px; line-height: 1; font-weight: 600"
+                >
+                  W7
+                </div>
+                <div class="kicker pt-2" style="font-size: 13px">
+                  longest, season
+                </div>
+              </div>
+              <div>
+                <div class="eyebrow-tight pb-3">Median</div>
+                <div
+                  class="font-display"
+                  style="font-size: 44px; line-height: 1; font-weight: 600"
+                >
+                  23:48
+                </div>
+                <div class="kicker pt-2" style="font-size: 13px">
+                  game duration
+                </div>
+              </div>
+              <div>
+                <div class="eyebrow-tight pb-3">Resign</div>
+                <div
+                  class="font-display"
+                  style="font-size: 44px; line-height: 1; font-weight: 600"
+                >
+                  68%
+                </div>
+                <div class="kicker pt-2" style="font-size: 13px">
+                  by feudal end
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Marginalia column 4/12 -->
+          <aside class="col-span-4 border-l border-ink/15 pl-8">
+            <div class="eyebrow-tight pb-4">From the desk</div>
+            <p class="marginalia">
+              The figure to the left counts only 1v1 ranked games on the
+              current season. Quick&#8209;match, custom lobbies, and the
+              occasional Treaty are kept in a separate ledger and excluded
+              from these standings.
+            </p>
+
+            <hr class="rule-faint my-6" />
+
+            <div class="eyebrow-tight pb-3">By the numbers</div>
+            <dl class="stat-block">
+              <dt>Civ</dt>
+              <dd class="text-red-signature">Knights Templar</dd>
+              <dt>Maps</dt>
+              <dd>12 of 14</dd>
+              <dt>Opp. civs</dt>
+              <dd>17 of 18</dd>
+              <dt>Notes</dt>
+              <dd>41 essays</dd>
+              <dt>Last played</dt>
+              <dd>14 hours ago</dd>
+            </dl>
+
+            <hr class="rule-faint my-6" />
+
+            <div class="eyebrow-tight pb-3">Quoted</div>
+            <p class="pull-quote">
+              The horsemen come early. Pay the spear tax before the second
+              wave, or there is no third Age to reach.
+            </p>
+            <p
+              class="text-graphite pt-3"
+              style="font-family: 'Inter Tight'; font-size: 11px"
+            >
+              &mdash; from a note on the Mongol matchup, 18 April
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <!-- divider between spreads -->
+      <div class="px-10">
+        <div class="flex items-center justify-center py-4">
+          <hr class="rule-faint flex-1" />
+          <span class="ornament mx-6">&mdash; &sect; &mdash;</span>
+          <hr class="rule-faint flex-1" />
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- RECENTLY PLAYED                                              -->
+      <!-- ============================================================ -->
+      <section class="spread px-10 pt-12 pb-20">
+        <div class="grid grid-cols-12 gap-10">
+          <div class="col-span-3">
+            <div class="eyebrow-tight pb-4">The Ledger</div>
+            <h2
+              class="font-display text-ink"
+              style="
+                font-size: 56px;
+                line-height: 0.95;
+                font-weight: 700;
+                letter-spacing: -0.015em;
+              "
+            >
+              Recently<br />Played.
+            </h2>
+            <p class="kicker pt-4" style="font-size: 14px">
+              The last ten matches, in order of occurrence; freshest at the
+              top.
+            </p>
+            <hr class="rule-gold my-6" />
+            <p class="marginalia">
+              Losses are set in
+              <span class="text-red-signature font-semibold">red</span>; the
+              rating column carries its own sign. A long line between
+              opponents and map suggests the matchup was already known to the
+              proprietor.
+            </p>
+          </div>
+
+          <div class="col-span-9">
+            <!-- header row -->
+            <div
+              class="log-row"
+              style="
+                border-bottom: 2px solid #1c1c1a;
+                padding-bottom: 8px;
+                padding-top: 0;
+              "
+            >
+              <div class="eyebrow-tight">Date</div>
+              <div class="eyebrow-tight">Matchup</div>
+              <div class="eyebrow-tight">Map</div>
+              <div class="eyebrow-tight text-right">Duration</div>
+              <div class="eyebrow-tight text-center">Result</div>
+              <div class="eyebrow-tight text-right">&Delta; MMR</div>
+            </div>
+
+            <!-- 10 rows -->
+            <div class="log-row">
+              <div
+                class="font-display"
+                style="font-size: 17px; font-weight: 600"
+              >
+                23 May
+              </div>
+              <div class="font-display" style="font-size: 17px">
+                <span class="text-red-signature">Templar</span>
+                <span class="text-graphite italic">vs</span>
+                Mongols
+              </div>
+              <div class="font-display italic" style="font-size: 16px">
+                Dry Arabia
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; font-weight: 500"
+              >
+                28:14
+              </div>
+              <div class="text-center result-W font-display" style="font-size: 17px">
+                W
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; color: #1c1c1a"
+              >
+                +18
+              </div>
+            </div>
+
+            <div class="log-row">
+              <div
+                class="font-display"
+                style="font-size: 17px; font-weight: 600"
+              >
+                23 May
+              </div>
+              <div class="font-display" style="font-size: 17px">
+                <span class="text-red-signature">Templar</span>
+                <span class="text-graphite italic">vs</span>
+                Rus
+              </div>
+              <div class="font-display italic" style="font-size: 16px">
+                Boulder Bay
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; font-weight: 500"
+              >
+                34:02
+              </div>
+              <div class="text-center result-L font-display" style="font-size: 17px">
+                L
+              </div>
+              <div
+                class="font-display text-right text-red-signature"
+                style="font-size: 16px"
+              >
+                &minus;17
+              </div>
+            </div>
+
+            <div class="log-row">
+              <div
+                class="font-display"
+                style="font-size: 17px; font-weight: 600"
+              >
+                22 May
+              </div>
+              <div class="font-display" style="font-size: 17px">
+                <span class="text-red-signature">Templar</span>
+                <span class="text-graphite italic">vs</span>
+                Abbasid Dynasty
+              </div>
+              <div class="font-display italic" style="font-size: 16px">
+                Ancient Spires
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; font-weight: 500"
+              >
+                19:51
+              </div>
+              <div class="text-center result-W font-display" style="font-size: 17px">
+                W
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; color: #1c1c1a"
+              >
+                +21
+              </div>
+            </div>
+
+            <div class="log-row">
+              <div
+                class="font-display"
+                style="font-size: 17px; font-weight: 600"
+              >
+                22 May
+              </div>
+              <div class="font-display" style="font-size: 17px">
+                <span class="text-red-signature">Templar</span>
+                <span class="text-graphite italic">vs</span>
+                English
+              </div>
+              <div class="font-display italic" style="font-size: 16px">
+                Mountain Pass
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; font-weight: 500"
+              >
+                26:37
+              </div>
+              <div class="text-center result-W font-display" style="font-size: 17px">
+                W
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; color: #1c1c1a"
+              >
+                +19
+              </div>
+            </div>
+
+            <div class="log-row">
+              <div
+                class="font-display"
+                style="font-size: 17px; font-weight: 600"
+              >
+                21 May
+              </div>
+              <div class="font-display" style="font-size: 17px">
+                <span class="text-red-signature">Templar</span>
+                <span class="text-graphite italic">vs</span>
+                Holy Roman Empire
+              </div>
+              <div class="font-display italic" style="font-size: 16px">
+                Hideout
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; font-weight: 500"
+              >
+                31:48
+              </div>
+              <div class="text-center result-L font-display" style="font-size: 17px">
+                L
+              </div>
+              <div
+                class="font-display text-right text-red-signature"
+                style="font-size: 16px"
+              >
+                &minus;15
+              </div>
+            </div>
+
+            <div class="log-row">
+              <div
+                class="font-display"
+                style="font-size: 17px; font-weight: 600"
+              >
+                21 May
+              </div>
+              <div class="font-display" style="font-size: 17px">
+                <span class="text-red-signature">Templar</span>
+                <span class="text-graphite italic">vs</span>
+                Malians
+              </div>
+              <div class="font-display italic" style="font-size: 16px">
+                King of the Hill
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; font-weight: 500"
+              >
+                22:09
+              </div>
+              <div class="text-center result-W font-display" style="font-size: 17px">
+                W
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; color: #1c1c1a"
+              >
+                +20
+              </div>
+            </div>
+
+            <div class="log-row">
+              <div
+                class="font-display"
+                style="font-size: 17px; font-weight: 600"
+              >
+                20 May
+              </div>
+              <div class="font-display" style="font-size: 17px">
+                <span class="text-red-signature">Templar</span>
+                <span class="text-graphite italic">vs</span>
+                Japanese
+              </div>
+              <div class="font-display italic" style="font-size: 16px">
+                Altai
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; font-weight: 500"
+              >
+                29:55
+              </div>
+              <div class="text-center result-L font-display" style="font-size: 17px">
+                L
+              </div>
+              <div
+                class="font-display text-right text-red-signature"
+                style="font-size: 16px"
+              >
+                &minus;18
+              </div>
+            </div>
+
+            <div class="log-row">
+              <div
+                class="font-display"
+                style="font-size: 17px; font-weight: 600"
+              >
+                20 May
+              </div>
+              <div class="font-display" style="font-size: 17px">
+                <span class="text-red-signature">Templar</span>
+                <span class="text-graphite italic">vs</span>
+                Order of the Dragon
+              </div>
+              <div class="font-display italic" style="font-size: 16px">
+                Lipany
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; font-weight: 500"
+              >
+                24:31
+              </div>
+              <div class="text-center result-W font-display" style="font-size: 17px">
+                W
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; color: #1c1c1a"
+              >
+                +22
+              </div>
+            </div>
+
+            <div class="log-row">
+              <div
+                class="font-display"
+                style="font-size: 17px; font-weight: 600"
+              >
+                19 May
+              </div>
+              <div class="font-display" style="font-size: 17px">
+                <span class="text-red-signature">Templar</span>
+                <span class="text-graphite italic">vs</span>
+                Ottomans
+              </div>
+              <div class="font-display italic" style="font-size: 16px">
+                Dry Arabia
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; font-weight: 500"
+              >
+                17:42
+              </div>
+              <div class="text-center result-W font-display" style="font-size: 17px">
+                W
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; color: #1c1c1a"
+              >
+                +24
+              </div>
+            </div>
+
+            <div class="log-row">
+              <div
+                class="font-display"
+                style="font-size: 17px; font-weight: 600"
+              >
+                19 May
+              </div>
+              <div class="font-display" style="font-size: 17px">
+                <span class="text-red-signature">Templar</span>
+                <span class="text-graphite italic">vs</span>
+                Zhu Xi's Legacy
+              </div>
+              <div class="font-display italic" style="font-size: 16px">
+                Boulder Bay
+              </div>
+              <div
+                class="font-display text-right"
+                style="font-size: 16px; font-weight: 500"
+              >
+                32:18
+              </div>
+              <div class="text-center result-L font-display" style="font-size: 17px">
+                L
+              </div>
+              <div
+                class="font-display text-right text-red-signature"
+                style="font-size: 16px"
+              >
+                &minus;19
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-6">
+              <span class="kicker">Continued in the bound annual edition.</span>
+              <span class="folio">page 4</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- divider -->
+      <div class="px-10">
+        <div class="flex items-center justify-center py-4">
+          <hr class="rule-faint flex-1" />
+          <span class="ornament mx-6">&mdash; &sect; &mdash;</span>
+          <hr class="rule-faint flex-1" />
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- MATCHUP GRID — THE HERO                                       -->
+      <!-- ============================================================ -->
+      <section class="spread px-10 pt-12 pb-20">
+        <div class="grid grid-cols-12 gap-10 items-start">
+          <!-- Title block -->
+          <div class="col-span-3">
+            <div class="eyebrow-tight pb-4">A Cartography of Opponents</div>
+            <h2
+              class="font-display text-ink"
+              style="
+                font-size: 60px;
+                line-height: 0.92;
+                font-weight: 700;
+                letter-spacing: -0.02em;
+              "
+            >
+              The<br />Matchup<br />Table.
+            </h2>
+            <hr class="rule-gold my-5" />
+            <p class="marginalia">
+              Read the rows as the proprietor's civilisation, the columns as
+              the opponent's. A
+              <span class="text-red-signature">&bull;</span> indicates a
+              standing note on file; an open ring marks an absence. Variant
+              civilisations are indented beneath their parent, by convention.
+            </p>
+
+            <hr class="rule-faint my-5" />
+
+            <div class="eyebrow-tight pb-3">Legend</div>
+            <div
+              class="font-display"
+              style="font-size: 14px; line-height: 1.9"
+            >
+              <div class="flex items-baseline gap-3">
+                <span
+                  class="inline-block"
+                  style="
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background: #9b2b2b;
+                    transform: translateY(-2px);
+                  "
+                ></span>
+                <span>Note present</span>
+              </div>
+              <div class="flex items-baseline gap-3">
+                <span
+                  class="inline-block"
+                  style="
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    border: 1px solid #1c1c1a;
+                    box-sizing: border-box;
+                    transform: translateY(-2px);
+                  "
+                ></span>
+                <span>No note &mdash; <em>terra incognita</em></span>
+              </div>
+              <div class="flex items-baseline gap-3">
+                <span
+                  class="inline-block"
+                  style="
+                    width: 12px;
+                    height: 8px;
+                    background: repeating-linear-gradient(
+                      45deg,
+                      transparent 0,
+                      transparent 2px,
+                      rgba(28, 28, 26, 0.4) 2px,
+                      rgba(28, 28, 26, 0.4) 3px
+                    );
+                  "
+                ></span>
+                <span>Mirror match</span>
+              </div>
+            </div>
+
+            <hr class="rule-faint my-5" />
+
+            <div class="eyebrow-tight pb-3">Aggregates</div>
+            <dl class="stat-block">
+              <dt>Notes</dt>
+              <dd>41 of 324</dd>
+              <dt>Best WR</dt>
+              <dd class="text-red-signature">71% &middot; Ottomans</dd>
+              <dt>Worst WR</dt>
+              <dd>38% &middot; Mongols</dd>
+              <dt>Most played</dt>
+              <dd>Mongols (41)</dd>
+              <dt>Unseen</dt>
+              <dd><em>Ayyubids</em></dd>
+            </dl>
+          </div>
+
+          <!-- Grid -->
+          <div class="col-span-9">
+            <!-- Grid container. 18 civs => 18 rows / 18 cols. -->
+            <!-- We'll lay this out as: a header row of vertical labels, then
+                 rows each consisting of a row label + 18 cells. -->
+            <div
+              id="matchup-grid"
+              style="
+                background: #ece6db;
+                padding: 22px 22px 28px;
+                border-top: 2px solid #1c1c1a;
+                border-bottom: 1px solid rgba(28, 28, 26, 0.4);
+              "
+            >
+              <!-- Title strip -->
+              <div class="flex items-baseline justify-between pb-3">
+                <div class="eyebrow-tight">
+                  Your civilisation &nbsp;&times;&nbsp; Opponent's
+                  civilisation
+                </div>
+                <div class="kicker" style="font-size: 12px">
+                  324 cells &middot; 41 noted &middot; 12.7% explored
+                </div>
+              </div>
+
+              <!-- Header column labels -->
+              <!-- Use CSS grid with 18 + 1 columns -->
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: 138px repeat(18, 1fr);
+                  align-items: end;
+                "
+              >
+                <div></div>
+                <!-- vertical headers -->
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label">Abbasid</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label variant">Ayyubids</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label">Byzantines</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label">Chinese</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label variant">Zhu Xi</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label">Delhi</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label">English</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label variant">Lancaster</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label">French</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label variant">Jeanne</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span
+                    class="col-label variant"
+                    style="color: #9b2b2b; font-weight: 600"
+                    >Templar</span
+                  >
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label">HRE</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label variant">O. Dragon</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label">Japanese</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label">Malians</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label">Mongols</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label">Ottomans</span>
+                </div>
+                <div class="flex justify-center" style="height: 90px">
+                  <span class="col-label">Rus</span>
+                </div>
+              </div>
+
+              <!-- Body rows. We'll generate via JS to keep this tractable. -->
+              <div id="grid-body"></div>
+
+              <hr class="rule-faint mt-5" />
+              <div class="flex items-center justify-between pt-3">
+                <span class="kicker" style="font-size: 12px">
+                  Selected: <em class="text-red-signature">Templar &times; Mongols</em>
+                  &middot; 41 games &middot; 62.4% &middot; 24:31 median
+                </span>
+                <span class="folio">page 7</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- divider -->
+      <div class="px-10">
+        <div class="flex items-center justify-center py-4">
+          <hr class="rule-faint flex-1" />
+          <span class="ornament mx-6">&mdash; &sect; &mdash;</span>
+          <hr class="rule-faint flex-1" />
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- MATCHUP ESSAY                                                 -->
+      <!-- ============================================================ -->
+      <section class="spread px-10 pt-12 pb-20">
+        <div class="flex items-center gap-4 pb-6">
+          <span class="eyebrow">The Feature</span>
+          <hr class="rule-faint flex-1" />
+          <span class="eyebrow">A study in one matchup</span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-10">
+          <article class="col-span-8">
+            <p class="kicker pb-2">An essay on a familiar opponent.</p>
+            <h2
+              class="font-display text-ink"
+              style="
+                font-size: 88px;
+                line-height: 0.92;
+                font-weight: 700;
+                letter-spacing: -0.025em;
+              "
+            >
+              Templar<br />
+              <span class="font-display italic text-graphite" style="font-weight: 500"
+                >versus</span
+              >
+              Mongols.
+            </h2>
+
+            <p
+              class="font-display italic pt-5 text-graphite"
+              style="font-size: 22px; line-height: 1.4; max-width: 60ch"
+            >
+              Forty&#8209;one games on record.
+              <span class="text-red-signature">62.4 percent</span> won. A
+              median duration of twenty&#8209;four minutes, thirty&#8209;one
+              seconds. The proprietor's most&#8209;played opponent, and
+              &mdash; until recently &mdash; his most feared.
+            </p>
+
+            <hr class="rule mt-8" />
+
+            <div class="pt-8">
+              <div class="eyebrow-tight pb-3">The note</div>
+              <textarea
+                class="essay dropcap"
+                rows="14"
+                spellcheck="false"
+              >Mongols open with the scout sniff and the horseman raid before your second TC stone has been laid. Treat the first ninety seconds as reconnaissance, not economy: pull a villager off gold the moment you hear hooves, and never let a single horseman find your gold line unanswered. Spearmen, not knights, win the feudal exchange &mdash; two spears for every horseman, sit them on the wood line, and survive to castle.
+
+The Templar castle timing is your edge. Order the Sergeants out of the Commandery as soon as the keep stones drop. A pair of MAA with two Sergeants will hold the front gate against horsemen indefinitely while the Commandery pumps a steady stream of free landmark units. The error to avoid is going for the cheap Council Hall before your stone economy can support a relic Commandery in the same Age &mdash; you will pay for it in castle.
+
+By the time he ages to imperial the Khan should be on his second or third raid. If you have not lost more than ten villagers cumulative, the game is already yours: knights with the Holy Inspiration aura crush mangudai outside of perfect kiting terrain, and the Templar trade unit makes relic gold trivial to sustain. The single failure mode at this stage is mangudai harass on your relic stones; garrison them early, walk them in pairs.
+
+Springalds end the game. Two stables of knights and four springalds in formation walk through every Mongol composition save the dedicated nest. He will resign before he has to retreat.</textarea>
+            </div>
+
+            <hr class="rule-faint mt-6" />
+            <div class="flex items-center justify-between pt-3">
+              <span class="kicker" style="font-size: 13px"
+                >Last revised 14 hours ago &middot; auto&#8209;saved
+                &middot; 312 words</span
+              >
+              <span class="folio">page 9</span>
+            </div>
+          </article>
+
+          <!-- Margin column -->
+          <aside class="col-span-4 border-l border-ink/15 pl-8">
+            <div class="eyebrow-tight pb-4">In figures</div>
+            <dl class="stat-block">
+              <dt>Games</dt>
+              <dd>41</dd>
+              <dt>Won</dt>
+              <dd>26</dd>
+              <dt>Lost</dt>
+              <dd class="text-red-signature">15</dd>
+              <dt>Win rate</dt>
+              <dd>62.4%</dd>
+              <dt>Median</dt>
+              <dd>24:31</dd>
+              <dt>Avg. &Delta;</dt>
+              <dd>+9.2</dd>
+              <dt>Maps</dt>
+              <dd>11 distinct</dd>
+              <dt>First played</dt>
+              <dd><em>04 Sep 2024</em></dd>
+            </dl>
+
+            <hr class="rule-faint my-6" />
+
+            <div class="eyebrow-tight pb-3">Last five encounters</div>
+            <div class="space-y-3">
+              <div class="flex items-baseline justify-between">
+                <div class="font-display" style="font-size: 15px">
+                  23 May &middot;
+                  <span class="italic text-graphite">Dry Arabia</span>
+                </div>
+                <div class="font-display result-W" style="font-size: 15px">
+                  W &middot; +18
+                </div>
+              </div>
+              <div class="flex items-baseline justify-between">
+                <div class="font-display" style="font-size: 15px">
+                  18 May &middot;
+                  <span class="italic text-graphite">Lipany</span>
+                </div>
+                <div class="font-display result-W" style="font-size: 15px">
+                  W &middot; +21
+                </div>
+              </div>
+              <div class="flex items-baseline justify-between">
+                <div class="font-display" style="font-size: 15px">
+                  12 May &middot;
+                  <span class="italic text-graphite">Boulder Bay</span>
+                </div>
+                <div class="font-display result-L" style="font-size: 15px">
+                  L &middot; &minus;19
+                </div>
+              </div>
+              <div class="flex items-baseline justify-between">
+                <div class="font-display" style="font-size: 15px">
+                  09 May &middot;
+                  <span class="italic text-graphite">Ancient Spires</span>
+                </div>
+                <div class="font-display result-W" style="font-size: 15px">
+                  W &middot; +17
+                </div>
+              </div>
+              <div class="flex items-baseline justify-between">
+                <div class="font-display" style="font-size: 15px">
+                  05 May &middot;
+                  <span class="italic text-graphite">Hideout</span>
+                </div>
+                <div class="font-display result-W" style="font-size: 15px">
+                  W &middot; +22
+                </div>
+              </div>
+            </div>
+
+            <hr class="rule-faint my-6" />
+
+            <div class="eyebrow-tight pb-3">Tags</div>
+            <p
+              class="font-display italic"
+              style="font-size: 15px; line-height: 1.7; color: #5b574e"
+            >
+              scout play &middot; spear opener &middot; castle Commandery
+              &middot; relic security &middot; springald close
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <!-- divider -->
+      <div class="px-10">
+        <div class="flex items-center justify-center py-4">
+          <hr class="rule-faint flex-1" />
+          <span class="ornament mx-6">&mdash; &sect; &mdash;</span>
+          <hr class="rule-faint flex-1" />
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- MAP NOTES INDEX                                              -->
+      <!-- ============================================================ -->
+      <section class="spread px-10 pt-12 pb-20">
+        <div class="grid grid-cols-12 gap-10">
+          <div class="col-span-4">
+            <div class="eyebrow-tight pb-4">The Atlas</div>
+            <h2
+              class="font-display text-ink"
+              style="
+                font-size: 60px;
+                line-height: 0.95;
+                font-weight: 700;
+                letter-spacing: -0.02em;
+              "
+            >
+              On Ground<br />Familiar &amp;<br />Unfamiliar.
+            </h2>
+            <hr class="rule-gold my-5" />
+            <p class="marginalia">
+              Eight maps in current ranked rotation. The proprietor has
+              committed eight notes to permanent record; six remain in
+              draft. Maps not yet drawn have been omitted from this edition.
+            </p>
+            <hr class="rule-faint my-5" />
+            <p class="kicker" style="font-size: 14px">
+              <span class="smallcaps text-graphite">A note on the figures</span> &mdash;
+              W/L is given as 1v1 ranked, Knights Templar only, current
+              season.
+            </p>
+          </div>
+
+          <div class="col-span-8">
+            <div class="grid grid-cols-4 gap-5">
+              <!-- map 1 -->
+              <div class="map-card">
+                <span class="corner">i.</span>
+                <div class="eyebrow-tight pb-2">Open</div>
+                <h3
+                  class="font-display"
+                  style="font-size: 26px; line-height: 1; font-weight: 600"
+                >
+                  Dry Arabia
+                </h3>
+                <hr class="rule-faint my-3" />
+                <div class="flex items-baseline justify-between">
+                  <div class="font-display" style="font-size: 24px; font-weight: 600">
+                    11<span class="text-graphite italic font-normal">&ndash;</span>4
+                  </div>
+                  <div class="kicker" style="font-size: 13px">73%</div>
+                </div>
+                <p class="kicker pt-3" style="font-size: 12px">
+                  Eight paragraphs on file.
+                </p>
+              </div>
+              <!-- map 2 -->
+              <div class="map-card">
+                <span class="corner">ii.</span>
+                <div class="eyebrow-tight pb-2">Hybrid</div>
+                <h3
+                  class="font-display"
+                  style="font-size: 26px; line-height: 1; font-weight: 600"
+                >
+                  Boulder Bay
+                </h3>
+                <hr class="rule-faint my-3" />
+                <div class="flex items-baseline justify-between">
+                  <div class="font-display" style="font-size: 24px; font-weight: 600">
+                    5<span class="text-graphite italic font-normal">&ndash;</span>6
+                  </div>
+                  <div class="kicker" style="font-size: 13px">45%</div>
+                </div>
+                <p class="kicker pt-3" style="font-size: 12px">
+                  A note is on file.
+                </p>
+              </div>
+              <!-- map 3 -->
+              <div class="map-card">
+                <span class="corner">iii.</span>
+                <div class="eyebrow-tight pb-2">Closed</div>
+                <h3
+                  class="font-display"
+                  style="font-size: 26px; line-height: 1; font-weight: 600"
+                >
+                  King of the Hill
+                </h3>
+                <hr class="rule-faint my-3" />
+                <div class="flex items-baseline justify-between">
+                  <div class="font-display" style="font-size: 24px; font-weight: 600">
+                    7<span class="text-graphite italic font-normal">&ndash;</span>3
+                  </div>
+                  <div class="kicker" style="font-size: 13px">70%</div>
+                </div>
+                <p class="kicker pt-3" style="font-size: 12px">
+                  A note is on file.
+                </p>
+              </div>
+              <!-- map 4 -->
+              <div class="map-card">
+                <span class="corner">iv.</span>
+                <div class="eyebrow-tight pb-2">Closed</div>
+                <h3
+                  class="font-display"
+                  style="font-size: 26px; line-height: 1; font-weight: 600"
+                >
+                  Mountain Pass
+                </h3>
+                <hr class="rule-faint my-3" />
+                <div class="flex items-baseline justify-between">
+                  <div class="font-display" style="font-size: 24px; font-weight: 600">
+                    6<span class="text-graphite italic font-normal">&ndash;</span>2
+                  </div>
+                  <div class="kicker" style="font-size: 13px">75%</div>
+                </div>
+                <p class="kicker pt-3" style="font-size: 12px">
+                  A note is on file.
+                </p>
+              </div>
+              <!-- map 5 -->
+              <div class="map-card">
+                <span class="corner">v.</span>
+                <div class="eyebrow-tight pb-2">Open</div>
+                <h3
+                  class="font-display"
+                  style="font-size: 26px; line-height: 1; font-weight: 600"
+                >
+                  Ancient Spires
+                </h3>
+                <hr class="rule-faint my-3" />
+                <div class="flex items-baseline justify-between">
+                  <div class="font-display" style="font-size: 24px; font-weight: 600">
+                    3<span class="text-graphite italic font-normal">&ndash;</span>5
+                  </div>
+                  <div class="kicker" style="font-size: 13px text-red-signature">
+                    38%
+                  </div>
+                </div>
+                <p class="kicker pt-3" style="font-size: 12px; color: #9b2b2b">
+                  No note &mdash; <em>still to write</em>
+                </p>
+              </div>
+              <!-- map 6 -->
+              <div class="map-card">
+                <span class="corner">vi.</span>
+                <div class="eyebrow-tight pb-2">Open</div>
+                <h3
+                  class="font-display"
+                  style="font-size: 26px; line-height: 1; font-weight: 600"
+                >
+                  Lipany
+                </h3>
+                <hr class="rule-faint my-3" />
+                <div class="flex items-baseline justify-between">
+                  <div class="font-display" style="font-size: 24px; font-weight: 600">
+                    4<span class="text-graphite italic font-normal">&ndash;</span>2
+                  </div>
+                  <div class="kicker" style="font-size: 13px">67%</div>
+                </div>
+                <p class="kicker pt-3" style="font-size: 12px">
+                  A note is on file.
+                </p>
+              </div>
+              <!-- map 7 -->
+              <div class="map-card">
+                <span class="corner">vii.</span>
+                <div class="eyebrow-tight pb-2">Closed</div>
+                <h3
+                  class="font-display"
+                  style="font-size: 26px; line-height: 1; font-weight: 600"
+                >
+                  Hideout
+                </h3>
+                <hr class="rule-faint my-3" />
+                <div class="flex items-baseline justify-between">
+                  <div class="font-display" style="font-size: 24px; font-weight: 600">
+                    2<span class="text-graphite italic font-normal">&ndash;</span>2
+                  </div>
+                  <div class="kicker" style="font-size: 13px">50%</div>
+                </div>
+                <p class="kicker pt-3" style="font-size: 12px; color: #9b2b2b">
+                  No note &mdash; <em>still to write</em>
+                </p>
+              </div>
+              <!-- map 8 -->
+              <div class="map-card">
+                <span class="corner">viii.</span>
+                <div class="eyebrow-tight pb-2">Hybrid</div>
+                <h3
+                  class="font-display"
+                  style="font-size: 26px; line-height: 1; font-weight: 600"
+                >
+                  Altai
+                </h3>
+                <hr class="rule-faint my-3" />
+                <div class="flex items-baseline justify-between">
+                  <div class="font-display" style="font-size: 24px; font-weight: 600">
+                    1<span class="text-graphite italic font-normal">&ndash;</span>3
+                  </div>
+                  <div class="kicker" style="font-size: 13px">25%</div>
+                </div>
+                <p class="kicker pt-3" style="font-size: 12px; color: #9b2b2b">
+                  No note &mdash; <em>still to write</em>
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-6">
+              <span class="kicker"
+                >Map rotation per season 12. Subject to ladder shuffles.</span
+              >
+              <span class="folio">page 12</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- divider -->
+      <div class="px-10">
+        <div class="flex items-center justify-center py-4">
+          <hr class="rule-faint flex-1" />
+          <span class="ornament mx-6">&mdash; &sect; &mdash;</span>
+          <hr class="rule-faint flex-1" />
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- GAME DETAIL SPREAD                                            -->
+      <!-- ============================================================ -->
+      <section class="spread px-10 pt-12 pb-24">
+        <div class="flex items-center gap-4 pb-6">
+          <span class="eyebrow">The Single Match</span>
+          <hr class="rule-faint flex-1" />
+          <span class="eyebrow">Match no. 4,712</span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-10">
+          <article class="col-span-8">
+            <p class="kicker pb-2">
+              From the desk of the proprietor, late evening.
+            </p>
+            <h2
+              class="font-display text-ink"
+              style="
+                font-size: 60px;
+                line-height: 0.95;
+                font-weight: 700;
+                letter-spacing: -0.015em;
+              "
+            >
+              23 May
+              <span class="font-display italic text-graphite" style="font-weight: 500"
+                >&middot;</span
+              >
+              <span class="text-red-signature">Templar</span>
+              <span class="font-display italic text-graphite" style="font-weight: 500"
+                >vs</span
+              >
+              Mongols
+              <span class="font-display italic text-graphite" style="font-weight: 500"
+                >on</span
+              >
+              Dry Arabia.
+            </h2>
+
+            <p
+              class="font-display italic pt-5 text-graphite"
+              style="font-size: 20px; line-height: 1.4"
+            >
+              A clean win in twenty&#8209;eight minutes &mdash; the
+              springald close exactly as the note prescribes.
+            </p>
+
+            <hr class="rule mt-8" />
+
+            <!-- participant block -->
+            <div class="grid grid-cols-2 gap-12 pt-6">
+              <div>
+                <div class="eyebrow-tight pb-3">In the red</div>
+                <p class="font-display" style="font-size: 22px; font-weight: 600">
+                  the proprietor
+                </p>
+                <dl class="stat-block pt-3">
+                  <dt>Civ</dt>
+                  <dd class="text-red-signature">Knights Templar</dd>
+                  <dt>Rating</dt>
+                  <dd>1,612 (+18)</dd>
+                  <dt>Score</dt>
+                  <dd>54,221</dd>
+                  <dt>Apm</dt>
+                  <dd>167 avg.</dd>
+                  <dt>Build</dt>
+                  <dd><em>Castle Commandery</em></dd>
+                </dl>
+              </div>
+              <div>
+                <div class="eyebrow-tight pb-3">In the field</div>
+                <p class="font-display" style="font-size: 22px; font-weight: 600">
+                  KhanOfTheSteppe
+                </p>
+                <dl class="stat-block pt-3">
+                  <dt>Civ</dt>
+                  <dd>Mongols</dd>
+                  <dt>Rating</dt>
+                  <dd>1,604 (&minus;15)</dd>
+                  <dt>Score</dt>
+                  <dd>41,118</dd>
+                  <dt>Apm</dt>
+                  <dd>192 avg.</dd>
+                  <dt>Build</dt>
+                  <dd><em>Mangudai harass</em></dd>
+                </dl>
+              </div>
+            </div>
+
+            <hr class="rule mt-8" />
+
+            <!-- per-game note -->
+            <div class="pt-8">
+              <div class="eyebrow-tight pb-3">Notes on the day</div>
+              <textarea
+                class="essay"
+                rows="6"
+                spellcheck="false"
+              >Spear opener went clean &mdash; pulled three villagers off wood at 3:50 when scout sniffed deer line, lost none. Stone walls behind front gate by 8:10. Commandery up at 14:02 with two relics already in. Knight count by 18:00 was eleven; he never committed to a fight, retreated mangudai every time. Two springalds with the second knight wave broke his TC. Lesson: my second relic walk this game was sloppy &mdash; should have garrisoned the relic monk in the keep, lost forty seconds of relic gold.</textarea>
+            </div>
+
+            <hr class="rule-faint mt-8" />
+
+            <div class="flex items-baseline justify-between pt-4">
+              <div class="flex items-baseline gap-6">
+                <span class="eyebrow-tight">Patch 12.1.224</span>
+                <span class="eyebrow-tight">Server EU&#8209;West</span>
+                <span class="eyebrow-tight">&Delta; MMR +18</span>
+                <span class="eyebrow-tight">Match length 28:14</span>
+              </div>
+              <span class="folio">page 14</span>
+            </div>
+          </article>
+
+          <!-- Margin -->
+          <aside class="col-span-4 border-l border-ink/15 pl-8">
+            <div class="eyebrow-tight pb-3">The arc of the match</div>
+            <p class="marginalia pb-5">
+              Feudal at 3:45; castle at 14:02; imperial at 24:30. Three
+              raids absorbed for a combined seven villager losses &mdash;
+              under the standing ten&#8209;villager threshold. He resigned
+              at 28:14 with his second TC at thirty&#8209;four percent.
+            </p>
+
+            <hr class="rule-faint my-5" />
+
+            <div class="eyebrow-tight pb-3">Resources at resign</div>
+            <dl class="stat-block">
+              <dt>Food</dt>
+              <dd>1,840</dd>
+              <dt>Wood</dt>
+              <dd>2,210</dd>
+              <dt>Gold</dt>
+              <dd>980</dd>
+              <dt>Stone</dt>
+              <dd>440</dd>
+              <dt>Villagers</dt>
+              <dd>87</dd>
+              <dt>Army value</dt>
+              <dd class="text-red-signature">8,140</dd>
+            </dl>
+
+            <hr class="rule-faint my-5" />
+
+            <div class="eyebrow-tight pb-3">From the replay</div>
+            <p class="pull-quote">
+              He never committed to a fight, retreated mangudai every time.
+            </p>
+            <p
+              class="text-graphite pt-2"
+              style="font-family: 'Inter Tight'; font-size: 11px"
+            >
+              &mdash; the proprietor, in tonight's note
+            </p>
+
+            <hr class="rule-faint my-5" />
+
+            <div class="eyebrow-tight pb-3">Cross-references</div>
+            <p
+              class="font-display italic"
+              style="font-size: 14px; line-height: 1.7; color: #5b574e"
+            >
+              See also: <span class="not-italic text-ink">Templar &times; Mongols</span> matchup
+              essay, p. 9 &middot; <span class="not-italic text-ink">Dry Arabia</span> map
+              note, p. 12 &middot; Spring season aggregates, p. 2.
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- COLOPHON                                                      -->
+      <!-- ============================================================ -->
+      <footer class="px-10 pb-16">
+        <div class="flex items-center justify-center py-4">
+          <hr class="rule-gold flex-1" />
+          <span class="ornament mx-6">&mdash; &sect; &mdash;</span>
+          <hr class="rule-gold flex-1" />
+        </div>
+        <div class="text-center pt-4">
+          <p class="eyebrow pb-3">Colophon</p>
+          <p
+            class="font-display italic"
+            style="font-size: 17px; color: #5b574e; line-height: 1.6"
+          >
+            The Templar Almanac is set in Cormorant Garamond and Inter Tight.
+            Records compiled from aoe4world.com, syncronised hourly.
+            Maintained privately, for one reader only.
+          </p>
+          <p class="folio pt-5">&mdash; fin. &mdash;</p>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      // ----------------------------------------------------------------
+      // Matchup grid generation.
+      // ----------------------------------------------------------------
+      const civs = [
+        { name: "Abbasid", short: "Abbasid", variant: false },
+        { name: "Ayyubids", short: "Ayyubids", variant: true, parent: "Abbasid" },
+        { name: "Byzantines", short: "Byzantines", variant: false },
+        { name: "Chinese", short: "Chinese", variant: false },
+        { name: "Zhu Xi", short: "Zhu Xi", variant: true, parent: "Chinese" },
+        { name: "Delhi", short: "Delhi", variant: false },
+        { name: "English", short: "English", variant: false },
+        {
+          name: "Lancaster",
+          short: "Lancaster",
+          variant: true,
+          parent: "English",
+        },
+        { name: "French", short: "French", variant: false },
+        { name: "Jeanne d'Arc", short: "Jeanne", variant: true, parent: "French" },
+        {
+          name: "Knights Templar",
+          short: "Templar",
+          variant: true,
+          parent: "French",
+          main: true,
+        },
+        { name: "Holy Roman Empire", short: "HRE", variant: false },
+        {
+          name: "Order of the Dragon",
+          short: "O. Dragon",
+          variant: true,
+          parent: "HRE",
+        },
+        { name: "Japanese", short: "Japanese", variant: false },
+        { name: "Malians", short: "Malians", variant: false },
+        { name: "Mongols", short: "Mongols", variant: false },
+        { name: "Ottomans", short: "Ottomans", variant: false },
+        { name: "Rus", short: "Rus", variant: false },
+      ];
+
+      // Deterministic pseudo-random for plausible-looking matchup data.
+      function seeded(i, j) {
+        const x = Math.sin(i * 73 + j * 131 + 7) * 10000;
+        return x - Math.floor(x);
+      }
+
+      // The Templar row index (user's main)
+      const templarIdx = civs.findIndex((c) => c.name === "Knights Templar");
+
+      const body = document.getElementById("grid-body");
+      civs.forEach((rowCiv, i) => {
+        const rowEl = document.createElement("div");
+        rowEl.style.display = "grid";
+        rowEl.style.gridTemplateColumns = "138px repeat(18, 1fr)";
+        rowEl.style.alignItems = "stretch";
+
+        const label = document.createElement("div");
+        label.className =
+          "row-label" +
+          (rowCiv.variant ? " variant" : "") +
+          (rowCiv.main ? " main" : "");
+        label.textContent = rowCiv.short;
+        label.style.display = "flex";
+        label.style.alignItems = "center";
+        label.style.justifyContent = "flex-end";
+        rowEl.appendChild(label);
+
+        civs.forEach((colCiv, j) => {
+          const cell = document.createElement("div");
+          cell.className = "grid-cell";
+
+          // Diagonal (mirror) marker
+          if (i === j) {
+            cell.classList.add("diag");
+            rowEl.appendChild(cell);
+            return;
+          }
+
+          const r = seeded(i, j);
+          // Templar row has more notes (this is the user's main); other rows
+          // are mostly sparse.
+          const hasNote =
+            i === templarIdx ? r > 0.18 : r > 0.78;
+
+          // Win-rate text: only show if "has games"
+          const hasGames = i === templarIdx || r > 0.6;
+
+          const dot = document.createElement("span");
+          dot.className = "dot " + (hasNote ? "filled" : "hollow");
+          cell.appendChild(dot);
+
+          if (hasGames) {
+            const wrSeed = seeded(i + 11, j + 3);
+            const wr = Math.round(35 + wrSeed * 50); // 35..85
+            const wrEl = document.createElement("span");
+            wrEl.className = "wr";
+            wrEl.textContent = wr + "%";
+            // Highlight extremes in red — but only on the Templar row, to keep
+            // accent restrained.
+            if (i === templarIdx && wr >= 70) {
+              wrEl.style.color = "#9b2b2b";
+              wrEl.style.fontWeight = "600";
+            }
+            cell.appendChild(wrEl);
+          }
+
+          // Pre-select Templar x Mongols cell
+          if (
+            rowCiv.name === "Knights Templar" &&
+            colCiv.name === "Mongols"
+          ) {
+            cell.classList.add("selected");
+          }
+
+          rowEl.appendChild(cell);
+        });
+
+        body.appendChild(rowEl);
+      });
+    </script>
+  </body>
+</html>

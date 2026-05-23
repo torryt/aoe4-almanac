@@ -1,0 +1,1818 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1440, initial-scale=1" />
+    <title>Codex Templi — Sanctum of the Knights Templar</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      window.tailwind = window.tailwind || {};
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              night: "#0a0a1e",
+              shadow: "#13132a",
+              cathedral: "#181834",
+              stained: "#1a2a4a",
+              stainedHi: "#2a4a8a",
+              ruby: "#7a0a1a",
+              rubyHi: "#a01828",
+              gold: "#c9a24a",
+              goldHi: "#e6c97a",
+              dimgold: "#a08a5a",
+              ivory: "#e6dfc4",
+              parchment: "#8a7d5a",
+            },
+            fontFamily: {
+              display: ['"Cinzel"', "serif"],
+              sub: ['"Cormorant Garamond"', "serif"],
+              body: ['"EB Garamond"', "serif"],
+            },
+            letterSpacing: {
+              vast: "0.32em",
+              huge: "0.22em",
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      :root {
+        --night: #0a0a1e;
+        --shadow: #13132a;
+        --stained: #1a2a4a;
+        --ruby: #7a0a1a;
+        --gold: #c9a24a;
+        --dimgold: #a08a5a;
+        --ivory: #e6dfc4;
+        --parchment: #8a7d5a;
+      }
+
+      html,
+      body {
+        background-color: #07071a;
+      }
+
+      body {
+        font-family: "EB Garamond", serif;
+        color: var(--ivory);
+        font-feature-settings:
+          "liga" on,
+          "dlig" on,
+          "smcp" on;
+        background:
+          radial-gradient(
+            ellipse 1200px 700px at 50% -100px,
+            rgba(201, 162, 74, 0.16) 0%,
+            rgba(201, 162, 74, 0.04) 30%,
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 900px 600px at 50% 100%,
+            rgba(122, 10, 26, 0.08) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            circle at 20% 40%,
+            rgba(26, 42, 74, 0.18) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 80% 60%,
+            rgba(26, 42, 74, 0.14) 0%,
+            transparent 55%
+          ),
+          #07071a;
+      }
+
+      /* faint paper grain */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.07;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0.9   0 0 0 0 0.85   0 0 0 0 0.65   0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+      }
+
+      .smallcaps {
+        font-variant-caps: all-small-caps;
+        letter-spacing: 0.18em;
+      }
+
+      .roman {
+        font-variant-numeric: lining-nums;
+        font-feature-settings: "lnum" on;
+      }
+
+      /* Gold rule with central glyph */
+      .rule {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        color: var(--gold);
+      }
+      .rule::before,
+      .rule::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgba(201, 162, 74, 0.35) 15%,
+          rgba(201, 162, 74, 0.85) 50%,
+          rgba(201, 162, 74, 0.35) 85%,
+          transparent
+        );
+      }
+      .rule-glyph {
+        font-family: "Cinzel", serif;
+        color: var(--gold);
+        font-size: 0.9rem;
+        opacity: 0.95;
+      }
+
+      /* Section header (illuminated) */
+      .illum-header {
+        font-family: "Cinzel", serif;
+        font-weight: 600;
+        letter-spacing: 0.32em;
+        color: var(--gold);
+        text-align: center;
+        font-size: 1.05rem;
+      }
+
+      /* Card / panel ornament */
+      .panel {
+        background:
+          linear-gradient(
+            180deg,
+            rgba(26, 42, 74, 0.18) 0%,
+            rgba(19, 19, 42, 0.6) 100%
+          ),
+          #0d0d22;
+        border: 1px solid rgba(201, 162, 74, 0.22);
+        position: relative;
+      }
+      .panel-corner::before,
+      .panel-corner::after {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border: 1px solid var(--gold);
+        opacity: 0.85;
+      }
+      .panel-corner::before {
+        top: -1px;
+        left: -1px;
+        border-right: none;
+        border-bottom: none;
+      }
+      .panel-corner::after {
+        bottom: -1px;
+        right: -1px;
+        border-left: none;
+        border-top: none;
+      }
+
+      /* Drop cap */
+      .dropcap::first-letter {
+        font-family: "Cinzel", serif;
+        font-weight: 700;
+        float: left;
+        font-size: 4.4rem;
+        line-height: 0.85;
+        padding: 0.35rem 0.7rem 0.1rem 0;
+        color: var(--gold);
+        text-shadow:
+          0 0 1px rgba(230, 201, 122, 0.6),
+          0 2px 0 rgba(0, 0, 0, 0.4);
+      }
+
+      /* Ruby drop cap variant */
+      .dropcap-ruby::first-letter {
+        color: #b8233a;
+        text-shadow:
+          0 0 1px rgba(201, 162, 74, 0.4),
+          0 2px 0 rgba(0, 0, 0, 0.4);
+      }
+
+      /* Stained glass — used behind big set pieces */
+      .glass-bg {
+        background:
+          radial-gradient(
+            circle at 50% 50%,
+            rgba(42, 74, 138, 0.22) 0%,
+            rgba(26, 42, 74, 0.12) 35%,
+            rgba(10, 10, 30, 0.0) 70%
+          ),
+          repeating-conic-gradient(
+            from 0deg,
+            rgba(201, 162, 74, 0.04) 0deg 9deg,
+            transparent 9deg 20deg
+          );
+      }
+
+      /* Recent battle row */
+      .battle-row {
+        border-top: 1px solid rgba(201, 162, 74, 0.13);
+      }
+      .battle-row:first-child {
+        border-top: none;
+      }
+
+      /* Templar mark */
+      .mark::before {
+        content: "✠";
+        color: var(--gold);
+        margin-right: 0.45em;
+        font-family: "Cinzel", serif;
+      }
+
+      /* Mini cross */
+      .x-cross {
+        font-family: "Cinzel", serif;
+        color: var(--gold);
+      }
+
+      .glyph-fade {
+        color: var(--dimgold);
+        opacity: 0.85;
+      }
+
+      /* Rose window cell hover */
+      .rose-cell {
+        transition: opacity 0.18s ease;
+        cursor: pointer;
+      }
+      .rose-cell:hover {
+        opacity: 0.55;
+      }
+      .rose-cell.templar-row {
+        stroke: #e6c97a;
+        stroke-width: 0.35;
+      }
+
+      .spoke-divider {
+        stroke: rgba(201, 162, 74, 0.55);
+        stroke-width: 0.7;
+        fill: none;
+      }
+      .ring-divider {
+        stroke: rgba(201, 162, 74, 0.12);
+        stroke-width: 0.35;
+        fill: none;
+      }
+      .spoke-divider-strong {
+        stroke: rgba(201, 162, 74, 0.85);
+        stroke-width: 1;
+        fill: none;
+      }
+
+      .rose-label {
+        font-family: "Cinzel", serif;
+        font-weight: 500;
+        font-size: 8px;
+        letter-spacing: 0.16em;
+        fill: var(--ivory);
+      }
+      .rose-label-templar {
+        fill: #e6c97a;
+        font-weight: 700;
+      }
+
+      /* Marginalia */
+      .marginalia {
+        font-family: "Cormorant Garamond", serif;
+        font-style: italic;
+        color: var(--parchment);
+        line-height: 1.6;
+      }
+
+      /* Editable manuscript */
+      .manuscript {
+        font-family: "EB Garamond", serif;
+        font-size: 1.04rem;
+        line-height: 1.72;
+        color: #e8e1c8;
+        outline: none;
+      }
+      .manuscript:focus {
+        background: rgba(201, 162, 74, 0.04);
+      }
+
+      /* Map plate */
+      .map-plate {
+        background:
+          linear-gradient(
+            180deg,
+            rgba(26, 42, 74, 0.25) 0%,
+            rgba(13, 13, 28, 0.95) 100%
+          );
+        border: 1px solid rgba(201, 162, 74, 0.2);
+        transition: border-color 0.2s ease;
+      }
+      .map-plate:hover {
+        border-color: rgba(201, 162, 74, 0.55);
+      }
+
+      .stat-num {
+        font-family: "Cinzel", serif;
+        font-weight: 600;
+        color: var(--ivory);
+        letter-spacing: 0.04em;
+      }
+
+      .ruby-text {
+        color: #c8324a;
+      }
+      .cobalt-text {
+        color: #6a8ed0;
+      }
+      .gold-text {
+        color: var(--gold);
+      }
+
+      /* Floating glyph ornaments */
+      .ornament-row {
+        font-family: "Cinzel", serif;
+        color: var(--dimgold);
+        letter-spacing: 1.2em;
+        opacity: 0.75;
+        text-align: center;
+      }
+
+      /* Pull quote bar */
+      .pull {
+        font-family: "Cormorant Garamond", serif;
+        font-style: italic;
+        font-weight: 500;
+        color: var(--parchment);
+      }
+
+      /* Tablet inscription */
+      .tablet {
+        background:
+          linear-gradient(
+            180deg,
+            rgba(26, 42, 74, 0.22) 0%,
+            rgba(13, 13, 28, 0.92) 100%
+          );
+        border: 1px solid rgba(201, 162, 74, 0.28);
+        position: relative;
+        overflow: hidden;
+      }
+      .tablet::before {
+        content: "";
+        position: absolute;
+        inset: 6px;
+        border: 1px solid rgba(201, 162, 74, 0.16);
+        pointer-events: none;
+      }
+
+      .glow-gold {
+        text-shadow: 0 0 14px rgba(201, 162, 74, 0.4);
+      }
+      .glow-ruby {
+        text-shadow: 0 0 14px rgba(184, 35, 58, 0.45);
+      }
+
+      /* Selection */
+      ::selection {
+        background: rgba(201, 162, 74, 0.35);
+        color: #fff;
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #07071a;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #2a2546;
+        border: 1px solid rgba(201, 162, 74, 0.2);
+      }
+
+      /* Roman date kerning */
+      .roman-date {
+        font-family: "Cinzel", serif;
+        letter-spacing: 0.32em;
+      }
+
+      .hairline {
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgba(201, 162, 74, 0.45),
+          transparent
+        );
+      }
+
+      .nudge-down {
+        transform: translateY(2px);
+      }
+    </style>
+  </head>
+
+  <body class="relative">
+    <main class="relative z-10 mx-auto max-w-[1380px] px-12 py-16">
+      <!-- ============================================== -->
+      <!-- 1. MASTHEAD                                     -->
+      <!-- ============================================== -->
+      <header class="mb-24 text-center">
+        <div class="ornament-row mb-6 text-[10px]">✦ ✦ ✦</div>
+
+        <div class="rule mb-7">
+          <span class="rule-glyph">✠</span>
+        </div>
+
+        <div class="smallcaps mb-3 text-[11px] tracking-[0.5em] text-dimgold">
+          Anno Domini · MMXXVI
+        </div>
+
+        <h1
+          class="font-display text-[68px] font-bold leading-[0.95] tracking-[0.16em] text-ivory glow-gold"
+        >
+          CODEX <span class="text-gold">✠</span> TEMPLI
+        </h1>
+
+        <div
+          class="mt-4 font-sub text-[22px] italic text-parchment tracking-wider"
+        >
+          The Private Chronicle of a Templar Commander
+        </div>
+
+        <div class="rule mt-7">
+          <span class="rule-glyph">❦</span>
+        </div>
+
+        <div class="mt-5 flex items-center justify-center gap-10 text-[11px]">
+          <span class="smallcaps text-parchment"
+            >Compiled at the Preceptory of Acre</span
+          >
+          <span class="x-cross opacity-70">✠</span>
+          <span class="roman-date text-gold text-[12px]"
+            >XXIII · V · MMXXVI</span
+          >
+          <span class="x-cross opacity-70">✠</span>
+          <span class="smallcaps text-parchment"
+            >Vigil of Saint Bernard of Clairvaux</span
+          >
+        </div>
+      </header>
+
+      <!-- ============================================== -->
+      <!-- 2. RELIQUARY PANEL / DASHBOARD                  -->
+      <!-- ============================================== -->
+      <section class="mb-24">
+        <div class="rule mb-3">
+          <span class="rule-glyph">◆ &nbsp; THE RELIQUARY &nbsp; ◆</span>
+        </div>
+        <p class="pull mb-10 text-center text-[18px]">
+          A reckoning of the campaigns, recorded in stone &amp; gilt.
+        </p>
+
+        <div class="grid grid-cols-4 gap-6">
+          <!-- Campaigns -->
+          <div class="tablet panel-corner px-7 py-8">
+            <div class="smallcaps text-[10px] text-parchment">
+              Campaigns Waged
+            </div>
+            <div class="mt-4 stat-num text-[54px] leading-none">847</div>
+            <div class="mt-3 hairline"></div>
+            <div class="mt-3 marginalia text-[14px]">
+              since the Feast of Stephen, AD MMXXIII
+            </div>
+          </div>
+
+          <!-- Victories -->
+          <div class="tablet panel-corner px-7 py-8">
+            <div class="smallcaps text-[10px] text-parchment">
+              Victories Granted
+            </div>
+            <div class="mt-4 flex items-baseline gap-3">
+              <span class="stat-num text-[54px] leading-none text-gold"
+                >492</span
+              >
+              <span class="font-sub italic text-[22px] text-dimgold"
+                >· 58.1%</span
+              >
+            </div>
+            <div class="mt-3 hairline"></div>
+            <div class="mt-3 marginalia text-[14px]">
+              of which CCCLV by feudal pressure &amp; the lance
+            </div>
+          </div>
+
+          <!-- MMR / Standing -->
+          <div class="tablet panel-corner px-7 py-8">
+            <div class="smallcaps text-[10px] text-parchment">
+              Present Standing
+            </div>
+            <div class="mt-4 flex items-baseline gap-3">
+              <span class="stat-num text-[54px] leading-none">1612</span>
+              <span class="font-sub italic text-[18px] cobalt-text">
+                ▲ XXIV
+              </span>
+            </div>
+            <div class="mt-3 hairline"></div>
+            <div class="mt-3 marginalia text-[14px]">
+              Conqueror III · rank CCLXIV in the West
+            </div>
+          </div>
+
+          <!-- Last sync -->
+          <div class="tablet panel-corner px-7 py-8">
+            <div class="smallcaps text-[10px] text-parchment">
+              Last Pilgrimage
+            </div>
+            <div class="mt-4 stat-num text-[26px] leading-tight">
+              aoe4world.com
+            </div>
+            <div class="mt-1 font-sub italic text-[18px] text-ivory">
+              synchronised XII minutes prior
+            </div>
+            <div class="mt-3 hairline"></div>
+            <div class="mt-3 marginalia text-[14px]">
+              CMXLVII matches scribed · III pending
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 3. CHRONICLE OF RECENT BATTLES                  -->
+      <!-- ============================================== -->
+      <section class="mb-28">
+        <div class="rule mb-3">
+          <span class="rule-glyph">❦ &nbsp; CHRONICLE OF RECENT BATTLES &nbsp; ❦</span>
+        </div>
+        <p class="pull mb-10 text-center text-[18px]">
+          Ten encounters most lately set down by the chronicler's hand.
+        </p>
+
+        <div class="panel panel-corner px-10 py-2">
+          <!-- Battle entries -->
+          <div id="battles">
+            <!-- Battle 1 -->
+            <div class="battle-row grid grid-cols-[110px_1fr_220px_110px_110px] items-center gap-6 py-5">
+              <div>
+                <div class="roman-date text-[13px] text-gold">XXIII · V</div>
+                <div class="smallcaps text-[10px] text-parchment">hodie · 14:22</div>
+              </div>
+              <div>
+                <div class="font-sub italic text-[22px] text-ivory">
+                  Templarii <span class="glyph-fade px-2">vs.</span> Mongolii
+                </div>
+                <div class="smallcaps text-[10px] text-parchment">
+                  Knights Templar versus Mongols · ranked solo
+                </div>
+              </div>
+              <div class="smallcaps text-[11px] text-ivory">Dry Arabia</div>
+              <div class="font-sub italic text-[18px] text-parchment">XXIV′ XII″</div>
+              <div class="text-right">
+                <span class="stat-num text-[20px] cobalt-text">+18</span>
+                <div class="smallcaps text-[9px] text-parchment">victoria</div>
+              </div>
+            </div>
+
+            <!-- Battle 2 -->
+            <div class="battle-row grid grid-cols-[110px_1fr_220px_110px_110px] items-center gap-6 py-5">
+              <div>
+                <div class="roman-date text-[13px] text-gold">XXIII · V</div>
+                <div class="smallcaps text-[10px] text-parchment">hodie · 13:48</div>
+              </div>
+              <div>
+                <div class="font-sub italic text-[22px] text-ivory">
+                  Templarii <span class="glyph-fade px-2">vs.</span> Angli
+                </div>
+                <div class="smallcaps text-[10px] text-parchment">
+                  Knights Templar versus English · ranked solo
+                </div>
+              </div>
+              <div class="smallcaps text-[11px] text-ivory">Boulder Bay</div>
+              <div class="font-sub italic text-[18px] text-parchment">XXXI′ XLI″</div>
+              <div class="text-right">
+                <span class="stat-num text-[20px] ruby-text">−21</span>
+                <div class="smallcaps text-[9px] text-parchment">cladis</div>
+              </div>
+            </div>
+
+            <!-- Battle 3 -->
+            <div class="battle-row grid grid-cols-[110px_1fr_220px_110px_110px] items-center gap-6 py-5">
+              <div>
+                <div class="roman-date text-[13px] text-gold">XXII · V</div>
+                <div class="smallcaps text-[10px] text-parchment">heri · 22:05</div>
+              </div>
+              <div>
+                <div class="font-sub italic text-[22px] text-ivory">
+                  Templarii <span class="glyph-fade px-2">vs.</span> Abbasidae
+                </div>
+                <div class="smallcaps text-[10px] text-parchment">
+                  Knights Templar versus Abbasid Dynasty
+                </div>
+              </div>
+              <div class="smallcaps text-[11px] text-ivory">Ancient Spires</div>
+              <div class="font-sub italic text-[18px] text-parchment">XIX′ III″</div>
+              <div class="text-right">
+                <span class="stat-num text-[20px] cobalt-text">+22</span>
+                <div class="smallcaps text-[9px] text-parchment">victoria</div>
+              </div>
+            </div>
+
+            <!-- Battle 4 -->
+            <div class="battle-row grid grid-cols-[110px_1fr_220px_110px_110px] items-center gap-6 py-5">
+              <div>
+                <div class="roman-date text-[13px] text-gold">XXII · V</div>
+                <div class="smallcaps text-[10px] text-parchment">heri · 21:30</div>
+              </div>
+              <div>
+                <div class="font-sub italic text-[22px] text-ivory">
+                  Templarii <span class="glyph-fade px-2">vs.</span> Sinæ
+                </div>
+                <div class="smallcaps text-[10px] text-parchment">
+                  Knights Templar versus Chinese
+                </div>
+              </div>
+              <div class="smallcaps text-[11px] text-ivory">Lipany</div>
+              <div class="font-sub italic text-[18px] text-parchment">XXVII′ V″</div>
+              <div class="text-right">
+                <span class="stat-num text-[20px] cobalt-text">+15</span>
+                <div class="smallcaps text-[9px] text-parchment">victoria</div>
+              </div>
+            </div>
+
+            <!-- Battle 5 -->
+            <div class="battle-row grid grid-cols-[110px_1fr_220px_110px_110px] items-center gap-6 py-5">
+              <div>
+                <div class="roman-date text-[13px] text-gold">XXII · V</div>
+                <div class="smallcaps text-[10px] text-parchment">heri · 20:11</div>
+              </div>
+              <div>
+                <div class="font-sub italic text-[22px] text-ivory">
+                  Templarii <span class="glyph-fade px-2">vs.</span> Iaponi
+                </div>
+                <div class="smallcaps text-[10px] text-parchment">
+                  Knights Templar versus Japanese
+                </div>
+              </div>
+              <div class="smallcaps text-[11px] text-ivory">Hideout</div>
+              <div class="font-sub italic text-[18px] text-parchment">XXXIX′ XVI″</div>
+              <div class="text-right">
+                <span class="stat-num text-[20px] ruby-text">−19</span>
+                <div class="smallcaps text-[9px] text-parchment">cladis</div>
+              </div>
+            </div>
+
+            <!-- Battle 6 -->
+            <div class="battle-row grid grid-cols-[110px_1fr_220px_110px_110px] items-center gap-6 py-5">
+              <div>
+                <div class="roman-date text-[13px] text-gold">XXI · V</div>
+                <div class="smallcaps text-[10px] text-parchment">19:54</div>
+              </div>
+              <div>
+                <div class="font-sub italic text-[22px] text-ivory">
+                  Templarii <span class="glyph-fade px-2">vs.</span> Francigenæ
+                </div>
+                <div class="smallcaps text-[10px] text-parchment">
+                  Knights Templar versus Jeanne d'Arc · mirror of the lily
+                </div>
+              </div>
+              <div class="smallcaps text-[11px] text-ivory">Mountain Pass</div>
+              <div class="font-sub italic text-[18px] text-parchment">XXII′ XLVII″</div>
+              <div class="text-right">
+                <span class="stat-num text-[20px] cobalt-text">+17</span>
+                <div class="smallcaps text-[9px] text-parchment">victoria</div>
+              </div>
+            </div>
+
+            <!-- Battle 7 -->
+            <div class="battle-row grid grid-cols-[110px_1fr_220px_110px_110px] items-center gap-6 py-5">
+              <div>
+                <div class="roman-date text-[13px] text-gold">XXI · V</div>
+                <div class="smallcaps text-[10px] text-parchment">18:02</div>
+              </div>
+              <div>
+                <div class="font-sub italic text-[22px] text-ivory">
+                  Templarii <span class="glyph-fade px-2">vs.</span> Mali
+                </div>
+                <div class="smallcaps text-[10px] text-parchment">
+                  Knights Templar versus Malians
+                </div>
+              </div>
+              <div class="smallcaps text-[11px] text-ivory">Altai</div>
+              <div class="font-sub italic text-[18px] text-parchment">XXXIV′ II″</div>
+              <div class="text-right">
+                <span class="stat-num text-[20px] ruby-text">−16</span>
+                <div class="smallcaps text-[9px] text-parchment">cladis</div>
+              </div>
+            </div>
+
+            <!-- Battle 8 -->
+            <div class="battle-row grid grid-cols-[110px_1fr_220px_110px_110px] items-center gap-6 py-5">
+              <div>
+                <div class="roman-date text-[13px] text-gold">XX · V</div>
+                <div class="smallcaps text-[10px] text-parchment">23:41</div>
+              </div>
+              <div>
+                <div class="font-sub italic text-[22px] text-ivory">
+                  Templarii <span class="glyph-fade px-2">vs.</span> Byzantini
+                </div>
+                <div class="smallcaps text-[10px] text-parchment">
+                  Knights Templar versus Byzantines
+                </div>
+              </div>
+              <div class="smallcaps text-[11px] text-ivory">King of the Hill</div>
+              <div class="font-sub italic text-[18px] text-parchment">XXVIII′ XXIX″</div>
+              <div class="text-right">
+                <span class="stat-num text-[20px] cobalt-text">+20</span>
+                <div class="smallcaps text-[9px] text-parchment">victoria</div>
+              </div>
+            </div>
+
+            <!-- Battle 9 -->
+            <div class="battle-row grid grid-cols-[110px_1fr_220px_110px_110px] items-center gap-6 py-5">
+              <div>
+                <div class="roman-date text-[13px] text-gold">XX · V</div>
+                <div class="smallcaps text-[10px] text-parchment">22:12</div>
+              </div>
+              <div>
+                <div class="font-sub italic text-[22px] text-ivory">
+                  Templarii <span class="glyph-fade px-2">vs.</span> Othmani
+                </div>
+                <div class="smallcaps text-[10px] text-parchment">
+                  Knights Templar versus Ottomans
+                </div>
+              </div>
+              <div class="smallcaps text-[11px] text-ivory">Dry Arabia</div>
+              <div class="font-sub italic text-[18px] text-parchment">XX′ LVI″</div>
+              <div class="text-right">
+                <span class="stat-num text-[20px] cobalt-text">+19</span>
+                <div class="smallcaps text-[9px] text-parchment">victoria</div>
+              </div>
+            </div>
+
+            <!-- Battle 10 -->
+            <div class="battle-row grid grid-cols-[110px_1fr_220px_110px_110px] items-center gap-6 py-5">
+              <div>
+                <div class="roman-date text-[13px] text-gold">XIX · V</div>
+                <div class="smallcaps text-[10px] text-parchment">21:35</div>
+              </div>
+              <div>
+                <div class="font-sub italic text-[22px] text-ivory">
+                  Templarii <span class="glyph-fade px-2">vs.</span> Delhi
+                </div>
+                <div class="smallcaps text-[10px] text-parchment">
+                  Knights Templar versus Delhi Sultanate
+                </div>
+              </div>
+              <div class="smallcaps text-[11px] text-ivory">Ancient Spires</div>
+              <div class="font-sub italic text-[18px] text-parchment">XLI′ XXII″</div>
+              <div class="text-right">
+                <span class="stat-num text-[20px] ruby-text">−23</span>
+                <div class="smallcaps text-[9px] text-parchment">cladis</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 4. THE ROSE WINDOW                              -->
+      <!-- ============================================== -->
+      <section class="mb-28">
+        <div class="rule mb-3">
+          <span class="rule-glyph">✠ &nbsp; THE ROSE WINDOW OF MATCHUPS &nbsp; ✠</span>
+        </div>
+        <p class="pull mb-10 text-center text-[18px]">
+          Each spoke a civilisation; each pane, a contest between yours &amp; theirs.
+          <br />
+          <span class="text-dimgold">Cobalt for victory · Ruby for defeat · Gilt for the unscribed.</span>
+        </p>
+
+        <div class="panel panel-corner px-10 py-12 glass-bg">
+          <div class="grid grid-cols-[1fr_900px_1fr] items-center gap-8">
+            <!-- Left marginalia -->
+            <div class="marginalia space-y-6 text-[15px] pr-2">
+              <div>
+                <div class="smallcaps text-[10px] text-gold mb-1">
+                  ✠ Of the Rose
+                </div>
+                The window is divided into eighteen lights, each devoted to a
+                people. Inwards from the rim, ring upon ring records the
+                opponent's house, ordered by the alphabet of the West.
+              </div>
+
+              <div class="hairline opacity-50"></div>
+
+              <div>
+                <div class="smallcaps text-[10px] text-gold mb-1">
+                  ✠ Of the Glass
+                </div>
+                Where the glass shines blue, the Templar held the field. Where
+                it bleeds ruby, the field was lost. The gilded pane signifies a
+                marginal contest, &amp; the small gold star, that a marginalium
+                has been set down in the codex.
+              </div>
+
+              <div class="hairline opacity-50"></div>
+
+              <div>
+                <div class="smallcaps text-[10px] text-gold mb-1">
+                  ✠ Of the Templar Spoke
+                </div>
+                The thirteenth ray, brighter-leaded, is the spoke of the Knights
+                Templar — for here the chronicler reckons himself.
+              </div>
+            </div>
+
+            <!-- The rose window SVG -->
+            <div class="flex justify-center">
+              <svg
+                id="rose"
+                width="900"
+                height="900"
+                viewBox="-450 -450 900 900"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <defs>
+                  <!-- Subtle radial light -->
+                  <radialGradient id="hubGlow" cx="0" cy="0" r="100" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#e6c97a" stop-opacity="0.55" />
+                    <stop offset="50%" stop-color="#c9a24a" stop-opacity="0.22" />
+                    <stop offset="100%" stop-color="#7a0a1a" stop-opacity="0" />
+                  </radialGradient>
+
+                  <radialGradient id="rimGlow" cx="0" cy="0" r="430" gradientUnits="userSpaceOnUse">
+                    <stop offset="60%" stop-color="#0a0a1e" stop-opacity="0" />
+                    <stop offset="100%" stop-color="#0a0a1e" stop-opacity="0.85" />
+                  </radialGradient>
+
+                  <filter id="softGlow">
+                    <feGaussianBlur stdDeviation="1.2" />
+                  </filter>
+                </defs>
+
+                <!-- Outer decorative rings (lead) -->
+                <circle cx="0" cy="0" r="420" fill="none" stroke="#c9a24a" stroke-width="1.6" opacity="0.85" />
+                <circle cx="0" cy="0" r="412" fill="none" stroke="#c9a24a" stroke-width="0.5" opacity="0.55" />
+                <circle cx="0" cy="0" r="398" fill="none" stroke="#c9a24a" stroke-width="0.4" opacity="0.4" />
+
+                <!-- Cells will be injected here -->
+                <g id="rose-cells"></g>
+
+                <!-- Ring + spoke dividers injected -->
+                <g id="rose-dividers"></g>
+
+                <!-- Inner hub ring -->
+                <circle cx="0" cy="0" r="88" fill="#0a0a1e" stroke="#c9a24a" stroke-width="1.2" />
+                <circle cx="0" cy="0" r="78" fill="url(#hubGlow)" />
+                <circle cx="0" cy="0" r="62" fill="none" stroke="#c9a24a" stroke-width="0.4" opacity="0.5" />
+
+                <!-- Hub ornament: Templar cross -->
+                <g>
+                  <text
+                    x="0"
+                    y="14"
+                    text-anchor="middle"
+                    font-family="Cinzel"
+                    font-size="44"
+                    fill="#c9a24a"
+                    style="letter-spacing: 0"
+                  >
+                    ✠
+                  </text>
+                  <text
+                    x="0"
+                    y="40"
+                    text-anchor="middle"
+                    font-family="Cinzel"
+                    font-size="7"
+                    letter-spacing="3"
+                    fill="#a08a5a"
+                  >
+                    TEMPLI
+                  </text>
+                  <text
+                    x="0"
+                    y="-32"
+                    text-anchor="middle"
+                    font-family="Cinzel"
+                    font-size="7"
+                    letter-spacing="3"
+                    fill="#a08a5a"
+                  >
+                    ROSA
+                  </text>
+                </g>
+
+                <!-- Labels injected -->
+                <g id="rose-labels"></g>
+
+                <!-- Outer vignette -->
+                <circle cx="0" cy="0" r="448" fill="url(#rimGlow)" pointer-events="none" />
+              </svg>
+            </div>
+
+            <!-- Right marginalia / legend -->
+            <div class="marginalia space-y-5 text-[15px] pl-2">
+              <div class="smallcaps text-[10px] text-gold mb-1">
+                ✠ Legend of the Panes
+              </div>
+
+              <div class="flex items-center gap-3">
+                <span
+                  class="inline-block h-5 w-5"
+                  style="background: linear-gradient(135deg, #2a4a8a, #1a2a4a); border: 1px solid #c9a24a;"
+                ></span>
+                <span>Victoria &nbsp;·&nbsp; &gt; LV%</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span
+                  class="inline-block h-5 w-5"
+                  style="background: linear-gradient(135deg, #4060a0, #223a6a); border: 1px solid #c9a24a;"
+                ></span>
+                <span>Favorable</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span
+                  class="inline-block h-5 w-5"
+                  style="background: #5a4820; border: 1px solid #c9a24a;"
+                ></span>
+                <span>Marginal &nbsp;·&nbsp; ~ L%</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span
+                  class="inline-block h-5 w-5"
+                  style="background: linear-gradient(135deg, #a01828, #6a0818); border: 1px solid #c9a24a;"
+                ></span>
+                <span>Unfavorable</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span
+                  class="inline-block h-5 w-5"
+                  style="background: #1a1a30; border: 1px solid #c9a24a;"
+                ></span>
+                <span>Unscribed &nbsp;·&nbsp; no record</span>
+              </div>
+
+              <div class="hairline opacity-50 my-3"></div>
+
+              <div class="flex items-center gap-3">
+                <span
+                  class="inline-flex h-5 w-5 items-center justify-center text-[14px] text-gold"
+                  >·</span
+                >
+                <span>marginalium present</span>
+              </div>
+
+              <div class="hairline opacity-50 my-3"></div>
+
+              <div id="rose-readout" class="text-ivory">
+                <div class="smallcaps text-[10px] text-gold mb-1">
+                  ✠ Currently selected
+                </div>
+                <div class="font-sub italic text-[20px] text-ivory">
+                  Templarii vs. Mongolii
+                </div>
+                <div class="smallcaps text-[10px] text-parchment mt-1">
+                  XXIII contests · XV won · LXV%
+                </div>
+                <div class="mt-2 text-[14px]">
+                  A favoured matchup — see the marginalium below.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-10 ornament-row text-[11px]">✠ &nbsp;&nbsp;❦&nbsp;&nbsp; ✠</div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 5. CHRONICLE LEAF / MATCHUP DETAIL              -->
+      <!-- ============================================== -->
+      <section class="mb-28">
+        <div class="rule mb-3">
+          <span class="rule-glyph">⚜ &nbsp; CHRONICLE LEAF · OF THE MATCHUP &nbsp; ⚜</span>
+        </div>
+        <p class="pull mb-10 text-center text-[18px]">
+          A manuscript leaf upon the chosen contest.
+        </p>
+
+        <div class="panel panel-corner px-12 py-12">
+          <div class="text-center mb-2">
+            <div class="smallcaps text-[10px] text-dimgold tracking-[0.4em]">
+              Selected Matchup · Spoke XII · Ring XIV
+            </div>
+          </div>
+          <h2
+            class="text-center font-display text-[44px] font-bold tracking-[0.18em] text-ivory glow-gold leading-none mt-2"
+          >
+            TEMPLARII <span class="text-gold">v.</span> MONGOLII
+          </h2>
+          <div class="text-center font-sub italic text-[22px] text-parchment mt-3">
+            Knights Templar versus Mongols
+          </div>
+
+          <div class="rule mt-7 mb-9">
+            <span class="rule-glyph">✠</span>
+          </div>
+
+          <div class="grid grid-cols-[1fr_300px] gap-12">
+            <!-- Manuscript body -->
+            <div class="manuscript dropcap" contenteditable="true">
+              The horse-lord comes early &amp; he comes light. The chief peril
+              of the contest lies not in the late game, where our lance
+              outweighs his sabre, but in the second age — those minutes
+              between the raising of the Chamber of the Order &amp; the
+              forming of the first commandery. He will harry the deer, slay
+              the boar-line, &amp; should he land a yam upon the gold camp,
+              the campaign is half-lost ere we have struck a blow. Therefore:
+              two scouts at all times, &amp; a third when Hideout or Altai is
+              drawn. Wall the gold &amp; berries, never the wood; the wood we
+              tower at the eight-minute mark, near the line of forward
+              outposts. Aim feudal MAA-into-knight, never archer-first, for
+              his mangudai have no peer in the kiting of bowmen. Should he
+              age to castle ahead of us, decline the field &amp; play the
+              long oath — our Imperial trade fleet outlasts his hordes, and
+              the springald is the doom of any siege he can muster. Above
+              all, do not chase. The chronicler reminds himself: the steppe
+              rewards patience as the chapel rewards the kneel.
+            </div>
+
+            <!-- Marginalia -->
+            <aside class="marginalia space-y-6">
+              <div>
+                <div class="smallcaps text-[10px] text-gold">
+                  ✠ Of the Tally
+                </div>
+                <div class="mt-2 grid grid-cols-2 gap-y-1 text-[15px] text-ivory not-italic">
+                  <span class="smallcaps text-parchment">Contests</span>
+                  <span class="stat-num text-right">XXIII</span>
+                  <span class="smallcaps text-parchment">Victories</span>
+                  <span class="stat-num text-right cobalt-text">XV</span>
+                  <span class="smallcaps text-parchment">Defeats</span>
+                  <span class="stat-num text-right ruby-text">VIII</span>
+                  <span class="smallcaps text-parchment">Rate</span>
+                  <span class="stat-num text-right gold-text">LXV%</span>
+                </div>
+              </div>
+
+              <div class="hairline opacity-60"></div>
+
+              <div>
+                <div class="smallcaps text-[10px] text-gold">
+                  ✠ Of the Approach
+                </div>
+                <div class="mt-2 text-[15px]">
+                  Feudal MAA &nbsp;→&nbsp; Knights at IX′ &nbsp;→&nbsp; Castle
+                  Springald · decline cavalry trades on flat ground.
+                </div>
+              </div>
+
+              <div class="hairline opacity-60"></div>
+
+              <div>
+                <div class="smallcaps text-[10px] text-gold">
+                  ✠ Of the Maps
+                </div>
+                <div class="mt-2 text-[15px]">
+                  Lipany &amp; Ancient Spires are friend; Hideout &amp; Altai,
+                  foe.
+                </div>
+              </div>
+
+              <div class="hairline opacity-60"></div>
+
+              <div>
+                <div class="smallcaps text-[10px] text-gold">
+                  ✠ Last Inscribed
+                </div>
+                <div class="mt-2 text-[15px] roman-date text-gold">
+                  XXII · V · MMXXVI
+                </div>
+                <div class="mt-1 text-[13px] text-parchment">
+                  per manum chronicistae
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="rule mt-12">
+            <span class="rule-glyph">❦</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 6. ATLAS OF TERRAINS                            -->
+      <!-- ============================================== -->
+      <section class="mb-28">
+        <div class="rule mb-3">
+          <span class="rule-glyph">◆ &nbsp; ATLAS OF TERRAINS &nbsp; ◆</span>
+        </div>
+        <p class="pull mb-10 text-center text-[18px]">
+          Of the eight fields whereupon the Templar most often makes his
+          campaign.
+        </p>
+
+        <div class="grid grid-cols-4 gap-5">
+          <!-- Dry Arabia -->
+          <div class="map-plate panel-corner px-6 py-7">
+            <div class="flex items-center justify-between">
+              <span class="x-cross text-[14px]">✠</span>
+              <span class="smallcaps text-[9px] text-gold">scribed</span>
+            </div>
+            <div class="font-display text-[20px] tracking-[0.2em] text-ivory mt-3">
+              DRY ARABIA
+            </div>
+            <div class="hairline my-3"></div>
+            <div class="flex items-baseline justify-between">
+              <span class="font-sub italic text-[15px] text-parchment">CXXXIV contests</span>
+              <span class="stat-num text-[16px]">
+                <span class="cobalt-text">LXXIX</span>
+                <span class="text-dimgold">·</span>
+                <span class="ruby-text">LV</span>
+              </span>
+            </div>
+            <div class="mt-3 text-[13px] marginalia">
+              The open field. The Templar's preferred ground for the lance.
+            </div>
+          </div>
+
+          <!-- Boulder Bay -->
+          <div class="map-plate panel-corner px-6 py-7">
+            <div class="flex items-center justify-between">
+              <span class="x-cross text-[14px]">✠</span>
+              <span class="smallcaps text-[9px] text-gold">scribed</span>
+            </div>
+            <div class="font-display text-[20px] tracking-[0.2em] text-ivory mt-3">
+              BOULDER BAY
+            </div>
+            <div class="hairline my-3"></div>
+            <div class="flex items-baseline justify-between">
+              <span class="font-sub italic text-[15px] text-parchment">XLVII contests</span>
+              <span class="stat-num text-[16px]">
+                <span class="cobalt-text">XX</span>
+                <span class="text-dimgold">·</span>
+                <span class="ruby-text">XXVII</span>
+              </span>
+            </div>
+            <div class="mt-3 text-[13px] marginalia">
+              Water vexes the order. The galley is no friend to the cross.
+            </div>
+          </div>
+
+          <!-- King of the Hill -->
+          <div class="map-plate panel-corner px-6 py-7">
+            <div class="flex items-center justify-between">
+              <span class="x-cross text-[14px]">✠</span>
+              <span class="smallcaps text-[9px] text-gold">scribed</span>
+            </div>
+            <div class="font-display text-[20px] tracking-[0.2em] text-ivory mt-3">
+              KING OF THE HILL
+            </div>
+            <div class="hairline my-3"></div>
+            <div class="flex items-baseline justify-between">
+              <span class="font-sub italic text-[15px] text-parchment">LXII contests</span>
+              <span class="stat-num text-[16px]">
+                <span class="cobalt-text">XLI</span>
+                <span class="text-dimgold">·</span>
+                <span class="ruby-text">XXI</span>
+              </span>
+            </div>
+            <div class="mt-3 text-[13px] marginalia">
+              The hill is ours; the relics fall to those who hold the high pew.
+            </div>
+          </div>
+
+          <!-- Mountain Pass -->
+          <div class="map-plate panel-corner px-6 py-7">
+            <div class="flex items-center justify-between">
+              <span class="x-cross text-[14px]">✠</span>
+              <span class="smallcaps text-[9px] text-gold">scribed</span>
+            </div>
+            <div class="font-display text-[20px] tracking-[0.2em] text-ivory mt-3">
+              MOUNTAIN PASS
+            </div>
+            <div class="hairline my-3"></div>
+            <div class="flex items-baseline justify-between">
+              <span class="font-sub italic text-[15px] text-parchment">XXXIX contests</span>
+              <span class="stat-num text-[16px]">
+                <span class="cobalt-text">XXIV</span>
+                <span class="text-dimgold">·</span>
+                <span class="ruby-text">XV</span>
+              </span>
+            </div>
+            <div class="mt-3 text-[13px] marginalia">
+              The choke favours the heavy line; the springald defends the gate.
+            </div>
+          </div>
+
+          <!-- Ancient Spires -->
+          <div class="map-plate panel-corner px-6 py-7">
+            <div class="flex items-center justify-between">
+              <span class="x-cross text-[14px]">✠</span>
+              <span class="smallcaps text-[9px] text-gold">scribed</span>
+            </div>
+            <div class="font-display text-[20px] tracking-[0.2em] text-ivory mt-3">
+              ANCIENT SPIRES
+            </div>
+            <div class="hairline my-3"></div>
+            <div class="flex items-baseline justify-between">
+              <span class="font-sub italic text-[15px] text-parchment">LXXI contests</span>
+              <span class="stat-num text-[16px]">
+                <span class="cobalt-text">XLV</span>
+                <span class="text-dimgold">·</span>
+                <span class="ruby-text">XXVI</span>
+              </span>
+            </div>
+            <div class="mt-3 text-[13px] marginalia">
+              The sacred site upon the hill — wonder-rush at peril, glory at gain.
+            </div>
+          </div>
+
+          <!-- Lipany -->
+          <div class="map-plate panel-corner px-6 py-7">
+            <div class="flex items-center justify-between">
+              <span class="x-cross text-[14px]">✠</span>
+              <span class="smallcaps text-[9px] text-gold">scribed</span>
+            </div>
+            <div class="font-display text-[20px] tracking-[0.2em] text-ivory mt-3">
+              LIPANY
+            </div>
+            <div class="hairline my-3"></div>
+            <div class="flex items-baseline justify-between">
+              <span class="font-sub italic text-[15px] text-parchment">XXIX contests</span>
+              <span class="stat-num text-[16px]">
+                <span class="cobalt-text">XX</span>
+                <span class="text-dimgold">·</span>
+                <span class="ruby-text">IX</span>
+              </span>
+            </div>
+            <div class="mt-3 text-[13px] marginalia">
+              The walled town — the Templar's stronghold. Knights answer
+              cavalry with cavalry.
+            </div>
+          </div>
+
+          <!-- Hideout -->
+          <div class="map-plate panel-corner px-6 py-7">
+            <div class="flex items-center justify-between">
+              <span class="x-cross text-[14px] glyph-fade">✠</span>
+              <span class="smallcaps text-[9px] text-dimgold">unscribed</span>
+            </div>
+            <div class="font-display text-[20px] tracking-[0.2em] text-ivory mt-3">
+              HIDEOUT
+            </div>
+            <div class="hairline my-3"></div>
+            <div class="flex items-baseline justify-between">
+              <span class="font-sub italic text-[15px] text-parchment">XLI contests</span>
+              <span class="stat-num text-[16px]">
+                <span class="cobalt-text">XVIII</span>
+                <span class="text-dimgold">·</span>
+                <span class="ruby-text">XXIII</span>
+              </span>
+            </div>
+            <div class="mt-3 text-[13px] marginalia">
+              Awaits a marginalium. The forward base eludes our discipline.
+            </div>
+          </div>
+
+          <!-- Altai -->
+          <div class="map-plate panel-corner px-6 py-7">
+            <div class="flex items-center justify-between">
+              <span class="x-cross text-[14px] glyph-fade">✠</span>
+              <span class="smallcaps text-[9px] text-dimgold">unscribed</span>
+            </div>
+            <div class="font-display text-[20px] tracking-[0.2em] text-ivory mt-3">
+              ALTAI
+            </div>
+            <div class="hairline my-3"></div>
+            <div class="flex items-baseline justify-between">
+              <span class="font-sub italic text-[15px] text-parchment">XXXIV contests</span>
+              <span class="stat-num text-[16px]">
+                <span class="cobalt-text">XIII</span>
+                <span class="text-dimgold">·</span>
+                <span class="ruby-text">XXI</span>
+              </span>
+            </div>
+            <div class="mt-3 text-[13px] marginalia">
+              Awaits a marginalium. The Mongol's home pasture; our shame.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 7. SINGLE BATTLE ACCOUNT                        -->
+      <!-- ============================================== -->
+      <section class="mb-24">
+        <div class="rule mb-3">
+          <span class="rule-glyph">✠ &nbsp; CHRONICLED ACCOUNT OF A SINGLE BATTLE &nbsp; ✠</span>
+        </div>
+        <p class="pull mb-10 text-center text-[18px]">
+          From the field of Dry Arabia, on the eve of the Feast of Saint
+          Bernard.
+        </p>
+
+        <div class="panel panel-corner px-12 py-12">
+          <div class="text-center">
+            <div class="smallcaps text-[10px] text-dimgold tracking-[0.4em]">
+              Game № MMCDXVII · Match ID 89472133
+            </div>
+            <h3
+              class="font-display text-[36px] font-bold tracking-[0.18em] text-ivory glow-gold mt-3 leading-none"
+            >
+              VICTORIA UPON DRY ARABIA
+            </h3>
+            <div class="font-sub italic text-[20px] text-parchment mt-3">
+              against a host of the Mongol khanate
+            </div>
+            <div class="roman-date text-gold text-[14px] mt-4">
+              XXIII · V · MMXXVI &nbsp;·&nbsp; hora XIV<sup class="text-[8px]">·xxii</sup>
+            </div>
+          </div>
+
+          <div class="rule my-9">
+            <span class="rule-glyph">❦</span>
+          </div>
+
+          <!-- Combatants census -->
+          <div class="grid grid-cols-2 gap-12 mb-10">
+            <div>
+              <div class="smallcaps text-[10px] text-gold mb-3 text-center">
+                ✠ The Templar's House
+              </div>
+              <div class="space-y-2">
+                <div class="flex justify-between items-baseline border-b border-dimgold/20 pb-2">
+                  <span class="mark font-sub italic text-[20px] text-ivory">
+                    chronicler · TorryTheTemplar
+                  </span>
+                  <span class="smallcaps text-[10px] text-parchment">Knights Templar</span>
+                </div>
+                <div class="font-sub italic text-[15px] text-parchment pl-7">
+                  MMR &nbsp;<span class="stat-num text-ivory">1612</span> &nbsp;·&nbsp;
+                  Conqueror III &nbsp;·&nbsp; victor
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="smallcaps text-[10px] text-dimgold mb-3 text-center">
+                ◆ The Khan's House
+              </div>
+              <div class="space-y-2">
+                <div class="flex justify-between items-baseline border-b border-dimgold/20 pb-2">
+                  <span class="font-sub italic text-[20px] text-ivory pl-7">
+                    BatuKhanWWWXIV
+                  </span>
+                  <span class="smallcaps text-[10px] text-parchment">Mongols</span>
+                </div>
+                <div class="font-sub italic text-[15px] text-parchment pl-7">
+                  MMR &nbsp;<span class="stat-num text-ivory">1597</span> &nbsp;·&nbsp;
+                  Conqueror III &nbsp;·&nbsp; defeated
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Per-game manuscript -->
+          <div class="grid grid-cols-[1fr_280px] gap-10">
+            <div>
+              <div class="smallcaps text-[10px] text-gold mb-4">
+                ✠ The Account
+              </div>
+              <div
+                class="manuscript dropcap-ruby"
+                contenteditable="true"
+              >
+                Began the contest with two scouts, scouring the woodline
+                toward the east, &amp; found the khan's quarry within four
+                minutes. Walled the gold &amp; the stone, leaving the berries
+                open as bait. He committed to a mangudai opening, as
+                expected; the third scout caught the first volley &amp; the
+                horse retired with two arrows in its flank. Aged to feudal at
+                3′ 48″ &amp; raised the chamber by 4′ 50″ — a swift dedication.
+                Pressed feudal MAA into the woodline; one villager taken.
+                Knights at 9′ 12″, &amp; here the contest tipped: the khan
+                committed to a second mangudai mass &amp; could not break the
+                lance. Castle by XVI′; springalds at XVIII′. The khan
+                conceded at XXIV′ XII″, ere the imperial age. Deo gratias.
+              </div>
+            </div>
+
+            <aside class="marginalia space-y-5">
+              <div>
+                <div class="smallcaps text-[10px] text-gold">✠ Of the Build</div>
+                <div class="mt-2 text-[15px]">
+                  Feudal MAA → Knight → Castle Springald.
+                </div>
+              </div>
+
+              <div class="hairline opacity-50"></div>
+
+              <div>
+                <div class="smallcaps text-[10px] text-gold">✠ Of the Span</div>
+                <div class="mt-2 text-[15px] stat-num text-ivory not-italic">
+                  XXIV′ XII″
+                </div>
+              </div>
+
+              <div class="hairline opacity-50"></div>
+
+              <div>
+                <div class="smallcaps text-[10px] text-gold">✠ Of the Score</div>
+                <div class="mt-2 text-[15px]">
+                  Templar &nbsp;<span class="stat-num cobalt-text not-italic">21,400</span>
+                  <br/>
+                  Khan &nbsp;<span class="stat-num ruby-text not-italic">14,820</span>
+                </div>
+              </div>
+
+              <div class="hairline opacity-50"></div>
+
+              <div>
+                <div class="smallcaps text-[10px] text-gold">✠ Reward</div>
+                <div class="mt-2 text-[15px] stat-num cobalt-text not-italic">
+                  + XVIII
+                </div>
+                <div class="text-[13px] mt-1">unto the standing of XVMCDXII</div>
+              </div>
+            </aside>
+          </div>
+
+          <!-- Foot metadata -->
+          <div class="hairline mt-12 mb-5"></div>
+          <div class="flex items-center justify-between text-[10px] smallcaps text-parchment">
+            <span>Imported from aoe4world.com</span>
+            <span class="x-cross opacity-70">✠</span>
+            <span>Match ID 89472133</span>
+            <span class="x-cross opacity-70">✠</span>
+            <span>Patch XII.II.MMXXVI</span>
+            <span class="x-cross opacity-70">✠</span>
+            <span>Server West Europe</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- Footer / colophon                               -->
+      <!-- ============================================== -->
+      <footer class="mt-24 text-center">
+        <div class="rule mb-6">
+          <span class="rule-glyph">✠</span>
+        </div>
+        <div class="font-sub italic text-[18px] text-parchment">
+          Compiled, illuminated &amp; preserved at the Preceptory of Acre.
+        </div>
+        <div class="smallcaps text-[10px] text-dimgold mt-2 tracking-[0.4em]">
+          Non nobis, Domine, non nobis, sed nomini tuo da gloriam.
+        </div>
+        <div class="ornament-row mt-6 text-[10px]">✦ ✦ ✦</div>
+      </footer>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- ROSE WINDOW GENERATION                          -->
+    <!-- ============================================== -->
+    <script>
+      (function () {
+        // The 18 civs in canonical order.
+        // Templar is the user's main, marked with templar=true.
+        const civs = [
+          { full: "Abbasid Dynasty", short: "ABBASID", parent: null },
+          { full: "Ayyubids", short: "AYYUBID", parent: "Abbasid Dynasty" },
+          { full: "Byzantines", short: "BYZANTINE", parent: null },
+          { full: "Chinese", short: "CHINESE", parent: null },
+          { full: "Delhi Sultanate", short: "DELHI", parent: null },
+          { full: "English", short: "ENGLISH", parent: null },
+          { full: "French", short: "FRENCH", parent: null },
+          { full: "Holy Roman Empire", short: "H. ROMAN", parent: null },
+          { full: "House of Lancaster", short: "LANCASTER", parent: "English" },
+          { full: "Japanese", short: "JAPANESE", parent: null },
+          { full: "Jeanne d'Arc", short: "JEANNE", parent: "French" },
+          {
+            full: "Knights Templar",
+            short: "TEMPLAR",
+            parent: "French",
+            templar: true,
+          },
+          { full: "Malians", short: "MALIAN", parent: null },
+          { full: "Mongols", short: "MONGOL", parent: null },
+          {
+            full: "Order of the Dragon",
+            short: "DRAGON",
+            parent: "Holy Roman Empire",
+          },
+          { full: "Ottomans", short: "OTTOMAN", parent: null },
+          { full: "Rus", short: "RUS", parent: null },
+          {
+            full: "Zhu Xi's Legacy",
+            short: "ZHU XI",
+            parent: "Chinese",
+          },
+        ];
+
+        const N = civs.length; // 18
+        const RINGS = 18;
+        const R_INNER = 88; // hub radius
+        const R_OUTER = 396; // outer cell radius
+        const ringWidth = (R_OUTER - R_INNER) / RINGS;
+
+        // Build a deterministic dataset: contests, wins, hasNote.
+        // Use civ-pair hash to make it look natural & vary.
+        function pairData(rowIdx, colIdx) {
+          const a = rowIdx * 131 + colIdx * 17 + 7;
+          // total contests
+          let contests = ((a * 1103) % 27) + 1; // 1..27
+          // diagonal — same civ vs itself — fewer
+          if (rowIdx === colIdx) contests = Math.max(1, Math.floor(contests / 4));
+          // Templar row has more contests overall
+          if (civs[rowIdx].templar) contests = Math.min(48, contests + 12);
+
+          // win rate biased a touch favorable for Templar
+          let winrate = ((a * 7919) % 100) / 100; // 0..1
+          if (civs[rowIdx].templar) winrate = Math.min(0.92, winrate * 0.6 + 0.35);
+
+          const wins = Math.round(contests * winrate);
+          const hasNote = (a * 13) % 7 === 0;
+          return { contests, wins, winrate, hasNote };
+        }
+
+        // Color for cell
+        function cellFill(d) {
+          if (d.contests === 0) return "#1a1a30";
+          const wr = d.winrate;
+          if (wr >= 0.6) {
+            // strong cobalt
+            return "#2a4a8a";
+          } else if (wr >= 0.53) {
+            return "#223a6a";
+          } else if (wr >= 0.47) {
+            // marginal — dim gilt
+            return "#5a4820";
+          } else if (wr >= 0.4) {
+            return "#6a1424";
+          } else {
+            return "#7a0a1a";
+          }
+        }
+
+        // Build SVG arc path for an annular sector
+        function annularSector(r1, r2, a1, a2) {
+          // angles in radians
+          const x1 = r1 * Math.cos(a1),
+            y1 = r1 * Math.sin(a1);
+          const x2 = r2 * Math.cos(a1),
+            y2 = r2 * Math.sin(a1);
+          const x3 = r2 * Math.cos(a2),
+            y3 = r2 * Math.sin(a2);
+          const x4 = r1 * Math.cos(a2),
+            y4 = r1 * Math.sin(a2);
+
+          const largeArc = a2 - a1 > Math.PI ? 1 : 0;
+
+          return [
+            `M ${x1.toFixed(3)} ${y1.toFixed(3)}`,
+            `L ${x2.toFixed(3)} ${y2.toFixed(3)}`,
+            `A ${r2.toFixed(3)} ${r2.toFixed(3)} 0 ${largeArc} 1 ${x3.toFixed(3)} ${y3.toFixed(3)}`,
+            `L ${x4.toFixed(3)} ${y4.toFixed(3)}`,
+            `A ${r1.toFixed(3)} ${r1.toFixed(3)} 0 ${largeArc} 0 ${x1.toFixed(3)} ${y1.toFixed(3)}`,
+            "Z",
+          ].join(" ");
+        }
+
+        const cellsG = document.getElementById("rose-cells");
+        const dividersG = document.getElementById("rose-dividers");
+        const labelsG = document.getElementById("rose-labels");
+
+        // Offset angles so spoke 0 starts at the top.
+        // Angle per spoke
+        const spokeAngle = (2 * Math.PI) / N;
+        const startOffset = -Math.PI / 2 - spokeAngle / 2; // so first spoke straddles the top
+
+        const templarRowIdx = civs.findIndex((c) => c.templar);
+
+        // Render cells
+        for (let s = 0; s < N; s++) {
+          const a1 = startOffset + s * spokeAngle;
+          const a2 = a1 + spokeAngle;
+
+          // Small gap padding inside each spoke for the lead lines
+          const pad = 0.0035; // radians
+          const aa1 = a1 + pad;
+          const aa2 = a2 - pad;
+
+          for (let r = 0; r < RINGS; r++) {
+            const r1 = R_INNER + r * ringWidth + 0.6;
+            const r2 = R_INNER + (r + 1) * ringWidth - 0.6;
+
+            const d = pairData(s, r);
+            const fill = cellFill(d);
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", annularSector(r1, r2, aa1, aa2));
+            path.setAttribute("fill", fill);
+            path.setAttribute("class", "rose-cell" + (civs[s].templar ? " templar-row" : ""));
+            path.setAttribute("data-row", s);
+            path.setAttribute("data-col", r);
+
+            cellsG.appendChild(path);
+
+            // Note marker — small gold dot in center of cell
+            if (d.hasNote) {
+              const rm = (r1 + r2) / 2;
+              const am = (aa1 + aa2) / 2;
+              const cx = rm * Math.cos(am);
+              const cy = rm * Math.sin(am);
+              const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+              dot.setAttribute("cx", cx.toFixed(2));
+              dot.setAttribute("cy", cy.toFixed(2));
+              dot.setAttribute("r", "1.2");
+              dot.setAttribute("fill", "#e6c97a");
+              dot.setAttribute("opacity", "0.95");
+              dot.setAttribute("pointer-events", "none");
+              cellsG.appendChild(dot);
+            }
+          }
+        }
+
+        // Ring dividers (concentric circles, gold leaf thin)
+        for (let r = 0; r <= RINGS; r++) {
+          const radius = R_INNER + r * ringWidth;
+          const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          c.setAttribute("cx", 0);
+          c.setAttribute("cy", 0);
+          c.setAttribute("r", radius);
+          c.setAttribute("class", "ring-divider");
+          dividersG.appendChild(c);
+        }
+
+        // Spoke dividers
+        for (let s = 0; s < N; s++) {
+          const a = startOffset + s * spokeAngle;
+          const x1 = R_INNER * Math.cos(a);
+          const y1 = R_INNER * Math.sin(a);
+          const x2 = R_OUTER * Math.cos(a);
+          const y2 = R_OUTER * Math.sin(a);
+
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", x1.toFixed(2));
+          line.setAttribute("y1", y1.toFixed(2));
+          line.setAttribute("x2", x2.toFixed(2));
+          line.setAttribute("y2", y2.toFixed(2));
+          // Stronger lead lines around the templar spoke
+          const isTemplarEdge = s === templarRowIdx || s === templarRowIdx + 1;
+          line.setAttribute("class", isTemplarEdge ? "spoke-divider-strong" : "spoke-divider");
+          dividersG.appendChild(line);
+        }
+
+        // Labels — civ names around the perimeter, rotated tangent-ish
+        const labelR = R_OUTER + 22;
+        for (let s = 0; s < N; s++) {
+          const a = startOffset + s * spokeAngle + spokeAngle / 2;
+          const cx = labelR * Math.cos(a);
+          const cy = labelR * Math.sin(a);
+
+          // Rotate so text reads outward; flip if on bottom half
+          let deg = (a * 180) / Math.PI;
+          let flip = false;
+          if (deg > 90 && deg < 270) {
+            deg = deg + 180;
+            flip = true;
+          }
+
+          const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          t.setAttribute("x", 0);
+          t.setAttribute("y", 0);
+          t.setAttribute("text-anchor", "middle");
+          t.setAttribute("dominant-baseline", "middle");
+          t.setAttribute(
+            "class",
+            "rose-label" + (civs[s].templar ? " rose-label-templar" : ""),
+          );
+          t.setAttribute(
+            "transform",
+            `translate(${cx.toFixed(2)} ${cy.toFixed(2)}) rotate(${deg.toFixed(2)})`,
+          );
+          // Templar gets a cross prefix
+          t.textContent = (civs[s].templar ? "✠ " : "") + civs[s].short;
+          labelsG.appendChild(t);
+
+          // Sub-label — variant parent
+          if (civs[s].parent) {
+            const sub = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            const subR = labelR + 11;
+            const sx = subR * Math.cos(a);
+            const sy = subR * Math.sin(a);
+            sub.setAttribute("x", 0);
+            sub.setAttribute("y", 0);
+            sub.setAttribute("text-anchor", "middle");
+            sub.setAttribute("dominant-baseline", "middle");
+            sub.setAttribute("font-family", "Cormorant Garamond");
+            sub.setAttribute("font-style", "italic");
+            sub.setAttribute("font-size", "6.5");
+            sub.setAttribute(
+              "fill",
+              civs[s].templar ? "#c9a24a" : "#8a7d5a",
+            );
+            sub.setAttribute(
+              "transform",
+              `translate(${sx.toFixed(2)} ${sy.toFixed(2)}) rotate(${deg.toFixed(2)})`,
+            );
+            sub.textContent = "var. " + civs[s].parent;
+            labelsG.appendChild(sub);
+          }
+        }
+
+        // Hover behaviour — update the right marginalia readout
+        const readout = document.getElementById("rose-readout");
+        document.querySelectorAll(".rose-cell").forEach((el) => {
+          el.addEventListener("mouseenter", () => {
+            const r = +el.getAttribute("data-row");
+            const c = +el.getAttribute("data-col");
+            const d = pairData(r, c);
+            const wrPct = Math.round(d.winrate * 100);
+            const aoCiv = civs[r];
+            const opCiv = civs[c];
+            const word =
+              wrPct >= 60
+                ? "A favoured matchup."
+                : wrPct >= 50
+                  ? "An even-handed contest."
+                  : wrPct >= 40
+                    ? "A trying matchup."
+                    : "A bitter matchup.";
+            const noteLine = d.hasNote
+              ? "<div class='mt-1 smallcaps text-[10px] text-gold'>✠ marginalium present</div>"
+              : "";
+            readout.innerHTML =
+              "<div class='smallcaps text-[10px] text-gold mb-1'>✠ Hovered</div>" +
+              "<div class='font-sub italic text-[20px] text-ivory'>" +
+              aoCiv.short +
+              " vs. " +
+              opCiv.short +
+              "</div>" +
+              "<div class='smallcaps text-[10px] text-parchment mt-1'>" +
+              toRoman(d.contests) +
+              " contests · " +
+              toRoman(d.wins) +
+              " won · " +
+              toRoman(wrPct) +
+              "%</div>" +
+              "<div class='mt-2 text-[14px]'>" +
+              word +
+              "</div>" +
+              noteLine;
+          });
+        });
+
+        function toRoman(num) {
+          if (num <= 0) return "—";
+          const map = [
+            ["M", 1000],
+            ["CM", 900],
+            ["D", 500],
+            ["CD", 400],
+            ["C", 100],
+            ["XC", 90],
+            ["L", 50],
+            ["XL", 40],
+            ["X", 10],
+            ["IX", 9],
+            ["V", 5],
+            ["IV", 4],
+            ["I", 1],
+          ];
+          let out = "";
+          for (const [r, v] of map) {
+            while (num >= v) {
+              out += r;
+              num -= v;
+            }
+          }
+          return out;
+        }
+      })();
+    </script>
+  </body>
+</html>

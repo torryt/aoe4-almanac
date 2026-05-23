@@ -1,0 +1,1459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1440" />
+<title>AOE4-PORTAL // TACTICAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  window.tailwind = window.tailwind || {};
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          obsidian:  '#0c0d0a',
+          carbon:    '#1a1c18',
+          carbon2:   '#2a2d28',
+          carbon3:   '#34372f',
+          hairline:  '#33352e',
+          amber:     '#c4884a',
+          amberlow:  '#7a5226',
+          olive:     '#6b8e5a',
+          olivelow:  '#3f5236',
+          blood:     '#a83232',
+          bloodlow:  '#5a1d1d',
+          graphite:  '#7d7a73',
+          graphite2: '#5b5853',
+          parchment: '#e8e4d8',
+          parchdim:  '#b8b4a8',
+        },
+        fontFamily: {
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          sans: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+        },
+        letterSpacing: {
+          ultra: '.18em',
+          mega:  '.28em',
+        }
+      }
+    }
+  };
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { background: #0c0d0a; }
+  body {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    color: #e8e4d8;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+  /* Scan-line overlay, fixed, very low opacity */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(232, 228, 216, 0.025) 0px,
+      rgba(232, 228, 216, 0.025) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    z-index: 50;
+    mix-blend-mode: overlay;
+  }
+  /* Subtle vignette */
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+    z-index: 49;
+  }
+
+  .hair { border-color: #33352e; }
+  .hair-b { border-bottom: 1px solid #33352e; }
+  .hair-t { border-top: 1px solid #33352e; }
+  .hair-r { border-right: 1px solid #33352e; }
+  .hair-l { border-left: 1px solid #33352e; }
+  .hair-all { border: 1px solid #33352e; }
+
+  .label-mini {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+    font-size: 10px;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: #7d7a73;
+  }
+  .label-section {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: .32em;
+    text-transform: uppercase;
+    color: #b8b4a8;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .mono-cap { font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .08em; }
+  .num-big {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    font-feature-settings: "tnum" 1;
+  }
+  .tabular { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+  /* Pulsing amber dot */
+  @keyframes pulseAmber {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(196,136,74,0.7); }
+    50%      { opacity: .55; box-shadow: 0 0 0 5px rgba(196,136,74,0); }
+  }
+  .dot-pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #c4884a;
+    animation: pulseAmber 1.8s ease-in-out infinite;
+  }
+  @keyframes blink { 0%, 49% { opacity:1 } 50%, 100% { opacity:.25 } }
+  .blink { animation: blink 1.05s steps(1) infinite; }
+
+  /* Matchup cell */
+  .cell {
+    width: 28px; height: 28px;
+    border: 1px solid #2a2d28;
+    position: relative;
+    transition: outline 60ms linear;
+  }
+  .cell:hover {
+    outline: 1px solid #c4884a;
+    outline-offset: -1px;
+    z-index: 5;
+  }
+  .cell .note-mark {
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 4px; height: 4px;
+    background: #e8e4d8;
+    opacity: .85;
+  }
+  .cell .sample-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px;
+    background: #7d7a73;
+    opacity: .55;
+  }
+  .cell .wr {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: #e8e4d8;
+    line-height: 28px;
+    text-align: center;
+    display: block;
+  }
+  .cell.diag {
+    background:
+      repeating-linear-gradient(45deg, transparent 0 3px, #2a2d28 3px 4px);
+    color: transparent !important;
+  }
+  .cell.diag .wr, .cell.diag .note-mark, .cell.diag .sample-bar { display: none; }
+  .cell.selected {
+    outline: 1px solid #c4884a !important;
+    outline-offset: -1px;
+    z-index: 6;
+  }
+
+  /* Row/col headers in matrix */
+  .axis {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    color: #b8b4a8;
+  }
+  .axis.main { color: #c4884a; }
+  .axis.variant { color: #7d7a73; }
+
+  /* Notes textarea */
+  textarea.tac-note {
+    background: #14160f;
+    color: #e8e4d8;
+    border: 1px solid #33352e;
+    border-left: 2px solid #6b8e5a;
+    padding: 14px 16px;
+    width: 100%;
+    min-height: 220px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+  }
+  textarea.tac-note:focus { border-left-color: #c4884a; }
+
+  /* Tiny ASCII spark bars helper class */
+  .spark {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -.02em;
+    line-height: 1;
+  }
+
+  /* Recent games row hover */
+  .ops-row:hover { background: #14160f; }
+  .ops-row .ops-result-w { color: #c4884a; }
+  .ops-row .ops-result-l { color: #a83232; }
+
+  /* Map card */
+  .map-card { background: #14160f; border: 1px solid #33352e; }
+  .map-card:hover { border-color: #c4884a; }
+
+  /* Win-rate color tints for cells */
+  .wr-good { background: #2a3a25; }
+  .wr-good.strong { background: #3a5230; }
+  .wr-good.elite { background: #4b6d3d; }
+  .wr-mid { background: #3a2f1c; }
+  .wr-mid.strong { background: #4f4124; }
+  .wr-bad { background: #3a1c1c; }
+  .wr-bad.strong { background: #561f1f; }
+  .wr-empty { background: #15160f; }
+  .wr-empty .wr { color: #5b5853; }
+
+  /* Templar row glow */
+  .tpl-row .cell { box-shadow: inset 0 0 0 0 transparent; }
+  .tpl-row { background: rgba(196,136,74,0.05); }
+
+  /* Stat sidebar pill */
+  .pill {
+    display: inline-block;
+    padding: 2px 6px;
+    border: 1px solid #33352e;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .08em;
+    color: #b8b4a8;
+  }
+  .pill.win { color: #c4884a; border-color: #5a3a1c; }
+  .pill.loss { color: #a83232; border-color: #5a1d1d; }
+
+  /* Selection highlight in matrix axes */
+  .axis-hl { color: #c4884a !important; }
+
+  /* Corner brackets for hero panels */
+  .bracket-tl::before, .bracket-tr::before, .bracket-bl::before, .bracket-br::before {
+    content: "";
+    position: absolute;
+    width: 10px; height: 10px;
+    border-color: #c4884a;
+  }
+  .bracket-tl::before { top: -1px; left: -1px; border-top: 1px solid; border-left: 1px solid; }
+  .bracket-tr::before { top: -1px; right: -1px; border-top: 1px solid; border-right: 1px solid; }
+  .bracket-bl::before { bottom: -1px; left: -1px; border-bottom: 1px solid; border-left: 1px solid; }
+  .bracket-br::before { bottom: -1px; right: -1px; border-bottom: 1px solid; border-right: 1px solid; }
+
+  /* Scrollbar (cosmetic) */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #0c0d0a; }
+  ::-webkit-scrollbar-thumb { background: #2a2d28; border: 2px solid #0c0d0a; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3d35; }
+
+  /* Module headings */
+  .module-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: #e8e4d8;
+  }
+
+  /* tiny inline status keys */
+  .key-sq { display:inline-block; width: 10px; height: 10px; vertical-align: -1px; margin-right: 6px; border: 1px solid #33352e; }
+
+  /* Faint horizontal rule */
+  .rule {
+    height: 1px;
+    background: linear-gradient(to right, transparent, #33352e 8%, #33352e 92%, transparent);
+  }
+
+  /* checkbox style */
+  input[type=checkbox].tac {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border: 1px solid #5b5853;
+    background: #0c0d0a;
+    display: inline-block;
+    vertical-align: -2px;
+    position: relative;
+    cursor: pointer;
+  }
+  input[type=checkbox].tac:checked {
+    background: #c4884a; border-color: #c4884a;
+  }
+  input[type=checkbox].tac:checked::after {
+    content: ""; position: absolute; top: 2px; left: 4px; width: 3px; height: 6px;
+    border-right: 2px solid #0c0d0a; border-bottom: 2px solid #0c0d0a; transform: rotate(45deg);
+  }
+
+  /* Make tables compact */
+  .grid-table { border-collapse: separate; border-spacing: 0; }
+  .grid-table th, .grid-table td { padding: 6px 10px; }
+  .grid-table th { font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #7d7a73; text-align: left; border-bottom: 1px solid #33352e; }
+  .grid-table td { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #e8e4d8; border-bottom: 1px solid #1f211c; }
+</style>
+</head>
+<body class="bg-obsidian text-parchment min-w-[1440px]">
+
+<!-- =================================================================
+     TOP BAR
+================================================================= -->
+<header class="hair-b">
+  <div class="max-w-[1440px] mx-auto px-6 h-[52px] flex items-center gap-8">
+    <div class="flex items-center gap-3">
+      <div class="w-[22px] h-[22px] border border-amber relative">
+        <div class="absolute inset-[3px] bg-amber/80"></div>
+        <div class="absolute -top-[1px] -left-[1px] w-[5px] h-[5px] border-t border-l border-parchment"></div>
+        <div class="absolute -bottom-[1px] -right-[1px] w-[5px] h-[5px] border-b border-r border-parchment"></div>
+      </div>
+      <div class="leading-tight">
+        <div class="mono font-bold text-[13px] tracking-[.22em] text-parchment">AOE4-PORTAL</div>
+        <div class="label-mini">V0.4.1 // TACTICAL BUILD</div>
+      </div>
+    </div>
+
+    <div class="h-6 w-px bg-hairline"></div>
+
+    <nav class="flex items-center gap-6 text-[11px] tracking-[.22em] uppercase">
+      <a class="text-parchment border-b border-amber pb-[2px]">Command</a>
+      <a class="text-graphite hover:text-parchment cursor-pointer">Ops Log</a>
+      <a class="text-graphite hover:text-parchment cursor-pointer">Matrix</a>
+      <a class="text-graphite hover:text-parchment cursor-pointer">Maps</a>
+      <a class="text-graphite hover:text-parchment cursor-pointer">Intel</a>
+      <a class="text-graphite hover:text-parchment cursor-pointer">Archive</a>
+    </nav>
+
+    <div class="ml-auto flex items-center gap-6">
+      <div class="flex items-center gap-2 text-[10px] tracking-[.22em] uppercase">
+        <span class="dot-pulse"></span>
+        <span class="text-graphite">SYNC</span>
+        <span class="mono text-parchment">ACTIVE</span>
+        <span class="text-graphite2 mono">// 00:00:14</span>
+      </div>
+      <div class="h-6 w-px bg-hairline"></div>
+      <div class="flex items-center gap-2">
+        <span class="label-mini">OP</span>
+        <span class="mono text-amber text-[12px] font-bold tracking-[.18em]">TORRY</span>
+      </div>
+      <div class="h-6 w-px bg-hairline"></div>
+      <div class="flex items-center gap-3 text-[11px]">
+        <span class="label-mini">UTC</span>
+        <span id="liveClock" class="mono text-parchment tracking-[.1em] font-medium tabular">--:--:--</span>
+      </div>
+    </div>
+  </div>
+  <!-- bottom strip -->
+  <div class="border-t border-hairline bg-carbon">
+    <div class="max-w-[1440px] mx-auto px-6 h-[26px] flex items-center gap-6 text-[10px] tracking-[.22em] uppercase text-graphite">
+      <span><span class="text-graphite2">SECTOR</span> <span class="text-parchment mono">02</span></span>
+      <span><span class="text-graphite2">LADDER</span> <span class="text-parchment mono">RM_SOLO</span></span>
+      <span><span class="text-graphite2">SEASON</span> <span class="text-parchment mono">S09</span></span>
+      <span><span class="text-graphite2">PATCH</span> <span class="text-parchment mono">14.2.3651</span></span>
+      <span><span class="text-graphite2">REGION</span> <span class="text-parchment mono">EU-WEST</span></span>
+      <span class="ml-auto"><span class="text-graphite2">CACHE</span> <span class="text-olive mono">NOMINAL</span></span>
+      <span><span class="text-graphite2">QUEUE</span> <span class="mono text-parchment">0 / 4</span></span>
+      <span><span class="text-graphite2">UPLINK</span> <span class="mono text-olive">AOE4WORLD.COM</span></span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-[1440px] mx-auto px-6 pt-6 pb-32">
+
+<!-- =================================================================
+     MODULE 01 - DASHBOARD
+================================================================= -->
+<section class="mb-10">
+  <div class="flex items-end justify-between mb-3">
+    <div>
+      <div class="label-mini">// MODULE 01</div>
+      <h2 class="module-title mt-1">Command Overview</h2>
+    </div>
+    <div class="flex items-center gap-4 text-[10px] tracking-[.22em] uppercase text-graphite">
+      <span>Window <span class="mono text-parchment">30D</span></span>
+      <span>Updated <span class="mono text-parchment">14s</span> ago</span>
+      <span class="text-olive">// LIVE</span>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-12 gap-3">
+    <!-- KPI: games -->
+    <div class="col-span-2 hair-all bg-carbon p-4 relative">
+      <div class="label-mini mb-2">Games / S09</div>
+      <div class="num-big text-parchment text-[42px] leading-none">147</div>
+      <div class="flex items-end justify-between mt-3">
+        <div class="text-[10px] uppercase tracking-[.22em] text-graphite">Avg <span class="mono text-parchment">4.9</span>/day</div>
+        <div class="spark text-olive text-[14px]">▂▃▅▂▆▇▅▆█▆</div>
+      </div>
+    </div>
+
+    <!-- KPI: W/L -->
+    <div class="col-span-3 hair-all bg-carbon p-4">
+      <div class="flex items-center justify-between mb-2">
+        <div class="label-mini">W / L · 30D</div>
+        <div class="text-[10px] tracking-[.22em] uppercase text-graphite">N=<span class="mono text-parchment">96</span></div>
+      </div>
+      <div class="flex items-baseline gap-4">
+        <div class="num-big text-amber text-[42px] leading-none tabular">57<span class="text-graphite text-[20px]">W</span></div>
+        <div class="num-big text-blood text-[42px] leading-none tabular">39<span class="text-graphite text-[20px]">L</span></div>
+        <div class="ml-auto text-right">
+          <div class="label-mini">Win%</div>
+          <div class="mono text-parchment font-bold text-[22px] tabular">59.4</div>
+        </div>
+      </div>
+      <div class="mt-3 flex items-center gap-2">
+        <div class="spark text-amber text-[16px] tracking-tighter">▃▅▄▆▅▇▆█▇▆▇▅▆▇▆</div>
+        <div class="spark text-blood text-[16px] tracking-tighter">▂▃▂▂▃▁▂▂▃▂▄▃▂▃▂</div>
+      </div>
+      <div class="mt-2 text-[10px] tracking-[.22em] uppercase text-graphite">Trend <span class="text-olive mono">+4.1%</span> vs S08</div>
+    </div>
+
+    <!-- KPI: MMR -->
+    <div class="col-span-3 hair-all bg-carbon p-4 relative">
+      <div class="absolute top-3 right-3 mono text-[10px] text-graphite tracking-[.1em]">ELO</div>
+      <div class="label-mini mb-2">Current Rating</div>
+      <div class="flex items-baseline gap-3">
+        <div class="num-big text-parchment text-[44px] leading-none tabular">1487</div>
+        <div class="mono text-olive text-[14px] font-bold tabular">+23</div>
+      </div>
+      <div class="mt-3 grid grid-cols-3 gap-2">
+        <div>
+          <div class="label-mini">Peak</div>
+          <div class="mono text-parchment text-[14px] tabular">1521</div>
+        </div>
+        <div>
+          <div class="label-mini">Rank</div>
+          <div class="mono text-parchment text-[14px] tabular">CONQ-II</div>
+        </div>
+        <div>
+          <div class="label-mini">% Pop</div>
+          <div class="mono text-parchment text-[14px] tabular">TOP 3.4</div>
+        </div>
+      </div>
+      <div class="mt-3 spark text-parchment text-[14px] tracking-tighter">▄▅▄▆▅▆▅▇▆▇▆▇▆█▇▆▇▆▅▆▇▆▇█</div>
+    </div>
+
+    <!-- KPI: streak -->
+    <div class="col-span-2 hair-all bg-carbon p-4">
+      <div class="label-mini mb-2">Streak</div>
+      <div class="flex items-baseline gap-2">
+        <div class="num-big text-amber text-[42px] leading-none">4</div>
+        <div class="mono-cap text-amber text-[14px] font-bold">W</div>
+      </div>
+      <div class="mt-3 flex items-center gap-1.5 text-[14px] mono">
+        <span class="text-amber">W</span><span class="text-amber">W</span><span class="text-amber">W</span><span class="text-amber">W</span>
+        <span class="text-graphite2">·</span>
+        <span class="text-blood">L</span><span class="text-amber">W</span><span class="text-blood">L</span><span class="text-amber">W</span>
+      </div>
+      <div class="mt-2 text-[10px] tracking-[.22em] uppercase text-graphite">Longest S09 <span class="mono text-parchment">7W</span></div>
+    </div>
+
+    <!-- Sync panel -->
+    <div class="col-span-2 hair-all bg-carbon p-4 relative">
+      <div class="absolute top-2 right-3 flex items-center gap-1.5">
+        <span class="dot-pulse"></span>
+      </div>
+      <div class="label-mini mb-2">Sync · Uplink</div>
+      <div class="space-y-1.5">
+        <div class="flex justify-between text-[10px] tracking-[.18em] uppercase">
+          <span class="text-graphite">Polled</span>
+          <span class="mono text-parchment">00:00:14</span>
+        </div>
+        <div class="flex justify-between text-[10px] tracking-[.18em] uppercase">
+          <span class="text-graphite">Last ID</span>
+          <span class="mono text-parchment">#84920154</span>
+        </div>
+        <div class="flex justify-between text-[10px] tracking-[.18em] uppercase">
+          <span class="text-graphite">Board</span>
+          <span class="mono text-parchment">RM_1V1</span>
+        </div>
+        <div class="flex justify-between text-[10px] tracking-[.18em] uppercase">
+          <span class="text-graphite">Interval</span>
+          <span class="mono text-parchment">60S</span>
+        </div>
+        <div class="flex justify-between text-[10px] tracking-[.18em] uppercase">
+          <span class="text-graphite">Errors</span>
+          <span class="mono text-olive">0000</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI second row: civ usage + map preview + MMR chart wide -->
+  <div class="grid grid-cols-12 gap-3 mt-3">
+    <div class="col-span-5 hair-all bg-carbon p-4">
+      <div class="flex justify-between items-center mb-3">
+        <div class="label-section">\\ Civ Deployment · 30d</div>
+        <div class="text-[10px] tracking-[.22em] uppercase text-graphite">Pick rate</div>
+      </div>
+      <div class="space-y-2 mono text-[11px]">
+        <div class="grid grid-cols-[60px_1fr_46px_46px] gap-3 items-center">
+          <span class="text-amber font-bold">TPL</span>
+          <span class="spark text-amber text-[16px] tracking-tighter">████████████████████████████████████████████████████████████████████████████▏</span>
+          <span class="text-amber tabular text-right">78.1%</span>
+          <span class="text-olive tabular text-right">61.3W</span>
+        </div>
+        <div class="grid grid-cols-[60px_1fr_46px_46px] gap-3 items-center">
+          <span class="text-parchment">FRE</span>
+          <span class="spark text-parchment text-[16px] tracking-tighter">██████████▏</span>
+          <span class="text-parchment tabular text-right">10.4%</span>
+          <span class="text-olive tabular text-right">53.0W</span>
+        </div>
+        <div class="grid grid-cols-[60px_1fr_46px_46px] gap-3 items-center">
+          <span class="text-parchment">HRE</span>
+          <span class="spark text-parchment text-[16px] tracking-tighter">█████▏</span>
+          <span class="text-parchment tabular text-right">5.2%</span>
+          <span class="text-amber tabular text-right">50.0W</span>
+        </div>
+        <div class="grid grid-cols-[60px_1fr_46px_46px] gap-3 items-center">
+          <span class="text-parchment">RUS</span>
+          <span class="spark text-parchment text-[16px] tracking-tighter">████▏</span>
+          <span class="text-parchment tabular text-right">3.8%</span>
+          <span class="text-blood tabular text-right">42.8W</span>
+        </div>
+        <div class="grid grid-cols-[60px_1fr_46px_46px] gap-3 items-center">
+          <span class="text-graphite">OTH</span>
+          <span class="spark text-graphite text-[16px] tracking-tighter">██▏</span>
+          <span class="text-graphite tabular text-right">2.5%</span>
+          <span class="text-graphite tabular text-right">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-span-4 hair-all bg-carbon p-4">
+      <div class="flex justify-between items-center mb-3">
+        <div class="label-section">\\ Threat Index · Opp Civ</div>
+        <div class="text-[10px] tracking-[.22em] uppercase text-graphite">vs TPL</div>
+      </div>
+      <div class="grid grid-cols-2 gap-x-6 gap-y-2 mono text-[11px]">
+        <div class="flex justify-between"><span class="text-blood">MNG</span><span class="tabular text-parchment">38.5%</span></div>
+        <div class="flex justify-between"><span class="text-blood">JAP</span><span class="tabular text-parchment">41.7%</span></div>
+        <div class="flex justify-between"><span class="text-blood">ABB</span><span class="tabular text-parchment">44.1%</span></div>
+        <div class="flex justify-between"><span class="text-amber">DEL</span><span class="tabular text-parchment">50.0%</span></div>
+        <div class="flex justify-between"><span class="text-amber">CHI</span><span class="tabular text-parchment">51.9%</span></div>
+        <div class="flex justify-between"><span class="text-olive">ENG</span><span class="tabular text-parchment">63.2%</span></div>
+        <div class="flex justify-between"><span class="text-olive">BYZ</span><span class="tabular text-parchment">66.7%</span></div>
+        <div class="flex justify-between"><span class="text-olive">LAN</span><span class="tabular text-parchment">71.4%</span></div>
+      </div>
+      <div class="rule my-3"></div>
+      <div class="text-[10px] tracking-[.22em] uppercase text-graphite">Top Counter <span class="mono text-blood">MNG</span> · Soft Pick <span class="mono text-olive">LAN</span></div>
+    </div>
+
+    <div class="col-span-3 hair-all bg-carbon p-4">
+      <div class="flex justify-between items-center mb-3">
+        <div class="label-section">\\ Session</div>
+        <div class="text-[10px] tracking-[.22em] uppercase text-graphite">Today</div>
+      </div>
+      <div class="grid grid-cols-2 gap-y-2 gap-x-3 text-[11px] mono">
+        <span class="text-graphite uppercase tracking-[.18em]">Played</span><span class="text-parchment tabular text-right">7</span>
+        <span class="text-graphite uppercase tracking-[.18em]">Won</span><span class="text-amber tabular text-right">5</span>
+        <span class="text-graphite uppercase tracking-[.18em]">Lost</span><span class="text-blood tabular text-right">2</span>
+        <span class="text-graphite uppercase tracking-[.18em]">Net ELO</span><span class="text-olive tabular text-right">+38</span>
+        <span class="text-graphite uppercase tracking-[.18em]">Time</span><span class="text-parchment tabular text-right">02:54:11</span>
+        <span class="text-graphite uppercase tracking-[.18em]">Avg Len</span><span class="text-parchment tabular text-right">24:53</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================
+     MODULE 02 - OPS LOG (recent games)
+================================================================= -->
+<section class="mb-10">
+  <div class="flex items-end justify-between mb-3">
+    <div>
+      <div class="label-mini">// MODULE 02</div>
+      <h2 class="module-title mt-1">Ops Log · Recent Sorties</h2>
+    </div>
+    <div class="flex items-center gap-4 text-[10px] tracking-[.22em] uppercase text-graphite">
+      <label><input type="checkbox" class="tac" checked> Only Templar</label>
+      <label><input type="checkbox" class="tac"> Hide W</label>
+      <label><input type="checkbox" class="tac"> Hide L</label>
+      <span class="mono text-parchment">N=10</span>
+    </div>
+  </div>
+
+  <div class="hair-all bg-carbon">
+    <div class="grid grid-cols-[140px_60px_70px_60px_70px_1fr_70px_60px_70px_90px_90px] px-4 py-2 border-b border-hairline text-[10px] tracking-[.22em] uppercase text-graphite">
+      <span>Timestamp</span>
+      <span>ID</span>
+      <span>Civ</span>
+      <span></span>
+      <span>Opp</span>
+      <span>Map</span>
+      <span>Dur</span>
+      <span>Res</span>
+      <span class="text-right">ΔMMR</span>
+      <span class="text-right">MMR→</span>
+      <span class="text-right">Note</span>
+    </div>
+
+    <!-- Row template -->
+    <!-- 10 rows -->
+    <div class="ops-row grid grid-cols-[140px_60px_70px_60px_70px_1fr_70px_60px_70px_90px_90px] px-4 py-2 border-b border-hairline mono text-[11.5px] tabular items-center cursor-pointer">
+      <span class="text-parchment">2026-05-23 18:42</span>
+      <span class="text-graphite">#84920154</span>
+      <span class="text-amber font-bold">TPL</span>
+      <span class="text-graphite">vs</span>
+      <span class="text-parchment">MNG</span>
+      <span class="text-parchment uppercase tracking-[.12em]">Dry Arabia</span>
+      <span class="text-parchment">26:14</span>
+      <span class="ops-result-w font-bold">W</span>
+      <span class="text-olive text-right">+19</span>
+      <span class="text-parchment text-right">1487</span>
+      <span class="text-amber text-right uppercase tracking-[.15em] text-[10px]">[ note ]</span>
+    </div>
+    <div class="ops-row grid grid-cols-[140px_60px_70px_60px_70px_1fr_70px_60px_70px_90px_90px] px-4 py-2 border-b border-hairline mono text-[11.5px] tabular items-center cursor-pointer">
+      <span class="text-parchment">2026-05-23 18:01</span>
+      <span class="text-graphite">#84919886</span>
+      <span class="text-amber font-bold">TPL</span>
+      <span class="text-graphite">vs</span>
+      <span class="text-parchment">JAP</span>
+      <span class="text-parchment uppercase tracking-[.12em]">Hideout</span>
+      <span class="text-parchment">31:48</span>
+      <span class="ops-result-l font-bold">L</span>
+      <span class="text-blood text-right">−21</span>
+      <span class="text-parchment text-right">1468</span>
+      <span class="text-graphite2 text-right uppercase tracking-[.15em] text-[10px]">[ + add ]</span>
+    </div>
+    <div class="ops-row grid grid-cols-[140px_60px_70px_60px_70px_1fr_70px_60px_70px_90px_90px] px-4 py-2 border-b border-hairline mono text-[11.5px] tabular items-center cursor-pointer">
+      <span class="text-parchment">2026-05-23 17:24</span>
+      <span class="text-graphite">#84919531</span>
+      <span class="text-amber font-bold">TPL</span>
+      <span class="text-graphite">vs</span>
+      <span class="text-parchment">DEL</span>
+      <span class="text-parchment uppercase tracking-[.12em]">Ancient Spires</span>
+      <span class="text-parchment">22:09</span>
+      <span class="ops-result-w font-bold">W</span>
+      <span class="text-olive text-right">+18</span>
+      <span class="text-parchment text-right">1489</span>
+      <span class="text-amber text-right uppercase tracking-[.15em] text-[10px]">[ note ]</span>
+    </div>
+    <div class="ops-row grid grid-cols-[140px_60px_70px_60px_70px_1fr_70px_60px_70px_90px_90px] px-4 py-2 border-b border-hairline mono text-[11.5px] tabular items-center cursor-pointer">
+      <span class="text-parchment">2026-05-23 16:55</span>
+      <span class="text-graphite">#84919210</span>
+      <span class="text-amber font-bold">TPL</span>
+      <span class="text-graphite">vs</span>
+      <span class="text-parchment">ABB</span>
+      <span class="text-parchment uppercase tracking-[.12em]">Boulder Bay</span>
+      <span class="text-parchment">28:33</span>
+      <span class="ops-result-w font-bold">W</span>
+      <span class="text-olive text-right">+22</span>
+      <span class="text-parchment text-right">1471</span>
+      <span class="text-graphite2 text-right uppercase tracking-[.15em] text-[10px]">[ + add ]</span>
+    </div>
+    <div class="ops-row grid grid-cols-[140px_60px_70px_60px_70px_1fr_70px_60px_70px_90px_90px] px-4 py-2 border-b border-hairline mono text-[11.5px] tabular items-center cursor-pointer">
+      <span class="text-parchment">2026-05-23 16:18</span>
+      <span class="text-graphite">#84918998</span>
+      <span class="text-amber font-bold">TPL</span>
+      <span class="text-graphite">vs</span>
+      <span class="text-parchment">CHI</span>
+      <span class="text-parchment uppercase tracking-[.12em]">King of the Hill</span>
+      <span class="text-parchment">19:42</span>
+      <span class="ops-result-w font-bold">W</span>
+      <span class="text-olive text-right">+17</span>
+      <span class="text-parchment text-right">1449</span>
+      <span class="text-amber text-right uppercase tracking-[.15em] text-[10px]">[ note ]</span>
+    </div>
+    <div class="ops-row grid grid-cols-[140px_60px_70px_60px_70px_1fr_70px_60px_70px_90px_90px] px-4 py-2 border-b border-hairline mono text-[11.5px] tabular items-center cursor-pointer">
+      <span class="text-parchment">2026-05-23 15:41</span>
+      <span class="text-graphite">#84918701</span>
+      <span class="text-amber font-bold">TPL</span>
+      <span class="text-graphite">vs</span>
+      <span class="text-parchment">DRA</span>
+      <span class="text-parchment uppercase tracking-[.12em]">Mountain Pass</span>
+      <span class="text-parchment">33:11</span>
+      <span class="ops-result-l font-bold">L</span>
+      <span class="text-blood text-right">−18</span>
+      <span class="text-parchment text-right">1432</span>
+      <span class="text-amber text-right uppercase tracking-[.15em] text-[10px]">[ note ]</span>
+    </div>
+    <div class="ops-row grid grid-cols-[140px_60px_70px_60px_70px_1fr_70px_60px_70px_90px_90px] px-4 py-2 border-b border-hairline mono text-[11.5px] tabular items-center cursor-pointer">
+      <span class="text-parchment">2026-05-23 15:02</span>
+      <span class="text-graphite">#84918440</span>
+      <span class="text-amber font-bold">TPL</span>
+      <span class="text-graphite">vs</span>
+      <span class="text-parchment">MAL</span>
+      <span class="text-parchment uppercase tracking-[.12em]">Lipany</span>
+      <span class="text-parchment">17:55</span>
+      <span class="ops-result-w font-bold">W</span>
+      <span class="text-olive text-right">+20</span>
+      <span class="text-parchment text-right">1450</span>
+      <span class="text-graphite2 text-right uppercase tracking-[.15em] text-[10px]">[ + add ]</span>
+    </div>
+    <div class="ops-row grid grid-cols-[140px_60px_70px_60px_70px_1fr_70px_60px_70px_90px_90px] px-4 py-2 border-b border-hairline mono text-[11.5px] tabular items-center cursor-pointer">
+      <span class="text-parchment">2026-05-23 14:26</span>
+      <span class="text-graphite">#84918121</span>
+      <span class="text-olive font-bold">FRE</span>
+      <span class="text-graphite">vs</span>
+      <span class="text-parchment">ZHU</span>
+      <span class="text-parchment uppercase tracking-[.12em]">Altai</span>
+      <span class="text-parchment">29:07</span>
+      <span class="ops-result-l font-bold">L</span>
+      <span class="text-blood text-right">−16</span>
+      <span class="text-parchment text-right">1430</span>
+      <span class="text-graphite2 text-right uppercase tracking-[.15em] text-[10px]">[ + add ]</span>
+    </div>
+    <div class="ops-row grid grid-cols-[140px_60px_70px_60px_70px_1fr_70px_60px_70px_90px_90px] px-4 py-2 border-b border-hairline mono text-[11.5px] tabular items-center cursor-pointer">
+      <span class="text-parchment">2026-05-23 13:58</span>
+      <span class="text-graphite">#84917905</span>
+      <span class="text-amber font-bold">TPL</span>
+      <span class="text-graphite">vs</span>
+      <span class="text-parchment">OTT</span>
+      <span class="text-parchment uppercase tracking-[.12em]">Dry Arabia</span>
+      <span class="text-parchment">21:30</span>
+      <span class="ops-result-w font-bold">W</span>
+      <span class="text-olive text-right">+19</span>
+      <span class="text-parchment text-right">1446</span>
+      <span class="text-amber text-right uppercase tracking-[.15em] text-[10px]">[ note ]</span>
+    </div>
+    <div class="ops-row grid grid-cols-[140px_60px_70px_60px_70px_1fr_70px_60px_70px_90px_90px] px-4 py-2 mono text-[11.5px] tabular items-center cursor-pointer">
+      <span class="text-parchment">2026-05-23 13:21</span>
+      <span class="text-graphite">#84917622</span>
+      <span class="text-amber font-bold">TPL</span>
+      <span class="text-graphite">vs</span>
+      <span class="text-parchment">JOA</span>
+      <span class="text-parchment uppercase tracking-[.12em]">Ancient Spires</span>
+      <span class="text-parchment">25:48</span>
+      <span class="ops-result-w font-bold">W</span>
+      <span class="text-olive text-right">+18</span>
+      <span class="text-parchment text-right">1427</span>
+      <span class="text-graphite2 text-right uppercase tracking-[.15em] text-[10px]">[ + add ]</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- =================================================================
+     MODULE 03 - MATCHUP MATRIX (THE HERO)
+================================================================= -->
+<section class="mb-10">
+  <div class="flex items-end justify-between mb-3">
+    <div>
+      <div class="label-mini">// MODULE 03 · PRIMARY DISPLAY</div>
+      <h2 class="module-title mt-1">Matchup Matrix · 18×18</h2>
+    </div>
+    <div class="flex items-center gap-5 text-[10px] tracking-[.22em] uppercase text-graphite">
+      <div class="flex items-center gap-3">
+        <span><span class="key-sq wr-good elite"></span><span class="text-parchment">≥ 60%</span></span>
+        <span><span class="key-sq wr-good"></span><span class="text-parchment">55-60</span></span>
+        <span><span class="key-sq wr-mid"></span><span class="text-parchment">45-55</span></span>
+        <span><span class="key-sq wr-bad"></span><span class="text-parchment">&lt; 45</span></span>
+        <span><span class="key-sq wr-empty"></span><span class="text-parchment">N&lt;3</span></span>
+      </div>
+      <span class="border-l border-hairline pl-5">
+        <span class="text-graphite2">Mark</span>
+        <span class="mono text-parchment">·</span>
+        <span class="text-parchment">note exists</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="hair-all bg-carbon p-4 relative">
+    <div class="bracket-tl absolute"></div>
+    <div class="bracket-tr absolute"></div>
+    <div class="bracket-bl absolute"></div>
+    <div class="bracket-br absolute"></div>
+
+    <div class="grid grid-cols-[180px_1fr_240px] gap-6 items-start">
+
+      <!-- LEFT META -->
+      <div class="space-y-4">
+        <div>
+          <div class="label-mini mb-1.5">Axis · Y</div>
+          <div class="mono text-parchment text-[12px] tracking-[.1em]">MY CIV → 18</div>
+          <div class="text-[10px] uppercase tracking-[.2em] text-graphite mt-1">Variants indented</div>
+        </div>
+        <div>
+          <div class="label-mini mb-1.5">Axis · X</div>
+          <div class="mono text-parchment text-[12px] tracking-[.1em]">OPP CIV → 18</div>
+        </div>
+        <div class="rule"></div>
+        <div>
+          <div class="label-mini mb-1.5">Selected</div>
+          <div id="matrixSel" class="mono text-amber text-[15px] font-bold tracking-[.12em]">TPL ▸ MNG</div>
+          <div class="text-[10px] uppercase tracking-[.2em] text-graphite mt-1">Click cell to inspect</div>
+        </div>
+        <div class="rule"></div>
+        <div>
+          <div class="label-mini mb-1.5">Coverage</div>
+          <div class="flex items-baseline gap-2">
+            <span class="mono text-parchment text-[22px] font-bold tabular">94</span>
+            <span class="mono text-graphite text-[11px]">/ 324 cells</span>
+          </div>
+          <div class="spark text-olive text-[14px] tracking-tighter mt-1">█████████████▏</div>
+          <div class="text-[10px] uppercase tracking-[.2em] text-graphite mt-1">29.0% mapped</div>
+        </div>
+        <div class="rule"></div>
+        <div>
+          <div class="label-mini mb-1.5">Notes</div>
+          <div class="flex items-baseline gap-2">
+            <span class="mono text-amber text-[22px] font-bold tabular">37</span>
+            <span class="mono text-graphite text-[11px]">cells annotated</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MATRIX -->
+      <div class="overflow-x-auto">
+        <div id="matrixWrap"></div>
+      </div>
+
+      <!-- RIGHT FLANK STATS -->
+      <div class="space-y-4">
+        <div>
+          <div class="label-mini mb-2">// Top Matchups · Templar</div>
+          <div class="space-y-1.5 mono text-[11px]">
+            <div class="flex justify-between"><span class="text-olive">TPL ▸ LAN</span><span class="tabular"><span class="text-olive">71.4%</span> <span class="text-graphite">N=14</span></span></div>
+            <div class="flex justify-between"><span class="text-olive">TPL ▸ BYZ</span><span class="tabular"><span class="text-olive">66.7%</span> <span class="text-graphite">N=12</span></span></div>
+            <div class="flex justify-between"><span class="text-olive">TPL ▸ ENG</span><span class="tabular"><span class="text-olive">63.2%</span> <span class="text-graphite">N=19</span></span></div>
+            <div class="flex justify-between"><span class="text-olive">TPL ▸ HRE</span><span class="tabular"><span class="text-olive">61.5%</span> <span class="text-graphite">N=13</span></span></div>
+            <div class="flex justify-between"><span class="text-amber">TPL ▸ CHI</span><span class="tabular"><span class="text-amber">51.9%</span> <span class="text-graphite">N=27</span></span></div>
+          </div>
+        </div>
+        <div class="rule"></div>
+        <div>
+          <div class="label-mini mb-2">// Threat List</div>
+          <div class="space-y-1.5 mono text-[11px]">
+            <div class="flex justify-between"><span class="text-blood">TPL ▸ MNG</span><span class="tabular"><span class="text-blood">38.5%</span> <span class="text-graphite">N=26</span></span></div>
+            <div class="flex justify-between"><span class="text-blood">TPL ▸ JAP</span><span class="tabular"><span class="text-blood">41.7%</span> <span class="text-graphite">N=24</span></span></div>
+            <div class="flex justify-between"><span class="text-blood">TPL ▸ ABB</span><span class="tabular"><span class="text-blood">44.1%</span> <span class="text-graphite">N=34</span></span></div>
+            <div class="flex justify-between"><span class="text-blood">TPL ▸ AYY</span><span class="tabular"><span class="text-blood">42.9%</span> <span class="text-graphite">N=7</span></span></div>
+          </div>
+        </div>
+        <div class="rule"></div>
+        <div>
+          <div class="label-mini mb-2">// Cell Inspect</div>
+          <div class="hair-all p-3" style="background:#14160f">
+            <div class="flex items-center justify-between">
+              <div class="mono text-amber text-[15px] font-bold tracking-[.12em]" id="cellSelLabel">TPL ▸ MNG</div>
+              <span class="pill loss">LOSS-LEAN</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mt-3">
+              <div><div class="label-mini">N</div><div class="mono text-parchment text-[14px] tabular" id="cellN">26</div></div>
+              <div><div class="label-mini">W%</div><div class="mono text-parchment text-[14px] tabular" id="cellW">38.5</div></div>
+              <div><div class="label-mini">ΔMMR</div><div class="mono text-blood text-[14px] tabular" id="cellD">−68</div></div>
+            </div>
+            <div class="spark text-blood text-[14px] tracking-tighter mt-2" id="cellSpark">▂▃▄▂▁▃▂▁▄▂</div>
+            <div class="text-[10px] uppercase tracking-[.2em] text-graphite mt-2">Last 10 · win/loss pattern</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer rule of matrix module -->
+    <div class="rule my-4"></div>
+    <div class="flex items-center justify-between text-[10px] tracking-[.22em] uppercase text-graphite">
+      <span>// MATRIX BUILD · <span class="mono text-parchment">324</span> CELLS · <span class="mono text-parchment">18×18</span></span>
+      <span>// SOURCE <span class="mono text-parchment">AOE4WORLD.COM</span></span>
+      <span>// LAST RECOMPUTE <span class="mono text-parchment">14s</span></span>
+      <span>// FILTER <span class="mono text-amber">RM_1V1 / S09</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================
+     MODULE 04 - MATCHUP DETAIL (TPL vs MNG)
+================================================================= -->
+<section class="mb-10">
+  <div class="flex items-end justify-between mb-3">
+    <div>
+      <div class="label-mini">// MODULE 04 · INTEL DRILL</div>
+      <h2 class="module-title mt-1">Intel // Matchup Detail</h2>
+    </div>
+    <div class="flex items-center gap-3 text-[10px] tracking-[.22em] uppercase">
+      <span class="text-graphite">Selected</span>
+      <span class="mono text-amber text-[13px] font-bold tracking-[.18em]">TEMPLAR ▸ MONGOLS</span>
+      <span class="text-graphite2">·</span>
+      <span class="text-graphite">Author</span>
+      <span class="mono text-parchment">TORRY</span>
+      <span class="text-graphite2">·</span>
+      <span class="text-graphite">Rev</span>
+      <span class="mono text-parchment">14</span>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-[1fr_360px] gap-3">
+    <!-- Note editor -->
+    <div class="hair-all bg-carbon">
+      <div class="px-4 py-2 border-b border-hairline flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <span class="label-section">\\ Doctrine · TPL ▸ MNG</span>
+          <span class="text-[10px] tracking-[.22em] uppercase text-graphite">Saved <span class="mono text-olive">2026-05-23 18:55</span></span>
+        </div>
+        <div class="flex items-center gap-4 text-[10px] tracking-[.22em] uppercase">
+          <span class="text-graphite">FORMAT <span class="mono text-parchment">.MD</span></span>
+          <span class="text-graphite">CHARS <span class="mono text-parchment">684</span></span>
+          <a class="mono text-amber tracking-[.18em]">[ EDIT ]</a>
+          <a class="mono text-graphite tracking-[.18em]">[ HIST ]</a>
+        </div>
+      </div>
+      <div class="p-4">
+<textarea class="tac-note" spellcheck="false">## TPL vs MNG  —  scout-denial doctrine
+
+Opening: forward landmark deflect. Build Aachen Chapel near the gold line on
+the FORWARD side of my base; commit 3 spearmen + 1 horseman by 3:30 to murder
+the scout BEFORE it sees my Templar relic plan. If they get the scout off, the
+horseman raid arrives ~6:10 and I am cooked.
+
+Feudal: skip Sgt Lutz second relic. Mongols out-mobility on relic theft. Take
+2 relics MAX, garrison in Chapel of Aachen + the Wallenstein Palace site.
+Aura stacking only matters if I survive Castle timing.
+
+Castle: pivot to crossbow+horseman from the Stable. DO NOT mass knights here —
+mangudai will kite forever on Dry Arabia / Altai. On closed maps (Mountain
+Pass, Hideout) knights are still fine — see /maps/mountain_pass.md.
+
+Imperial: usually doesn't happen. If it does, build double Stables for Royal
+Knights and ride straight at any forward Khaganate Palace. The map is decided
+by minute 18 in 84% of last-10 in this matchup.
+
+> Note: re-test post-patch 14.2 — Mongols Steppe Redoubt nerf changes timing.</textarea>
+      </div>
+      <div class="px-4 py-2 border-t border-hairline flex items-center justify-between text-[10px] tracking-[.22em] uppercase text-graphite">
+        <div class="flex items-center gap-4">
+          <span><input type="checkbox" class="tac" checked> Auto-link games</span>
+          <span><input type="checkbox" class="tac" checked> Public to self</span>
+          <span><input type="checkbox" class="tac"> Pin to top</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="mono text-parchment">CTRL+S</span>
+          <a class="mono text-amber tracking-[.18em]">[ COMMIT ]</a>
+          <a class="mono text-graphite tracking-[.18em]">[ DISCARD ]</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar stats for this matchup -->
+    <div class="space-y-3">
+      <div class="hair-all bg-carbon p-4">
+        <div class="label-section mb-3">\\ Vitals · TPL vs MNG</div>
+        <div class="grid grid-cols-2 gap-y-3">
+          <div>
+            <div class="label-mini">Games</div>
+            <div class="mono text-parchment text-[22px] font-bold tabular">26</div>
+          </div>
+          <div>
+            <div class="label-mini">Win%</div>
+            <div class="mono text-blood text-[22px] font-bold tabular">38.5</div>
+          </div>
+          <div>
+            <div class="label-mini">W / L</div>
+            <div class="mono tabular text-[18px]"><span class="text-amber font-bold">10</span><span class="text-graphite"> · </span><span class="text-blood font-bold">16</span></div>
+          </div>
+          <div>
+            <div class="label-mini">Net ΔMMR</div>
+            <div class="mono text-blood text-[18px] tabular font-bold">−68</div>
+          </div>
+          <div>
+            <div class="label-mini">Avg Len</div>
+            <div class="mono text-parchment text-[18px] tabular">23:11</div>
+          </div>
+          <div>
+            <div class="label-mini">Med ΔTime</div>
+            <div class="mono text-parchment text-[18px] tabular">22:48</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hair-all bg-carbon p-4">
+        <div class="label-section mb-3">\\ Last 5 · vs MNG</div>
+        <div class="space-y-1.5 mono text-[11px] tabular">
+          <div class="grid grid-cols-[16px_50px_1fr_44px_44px] gap-2 items-center">
+            <span class="text-blood font-bold">L</span><span class="text-graphite">05-23</span><span class="text-parchment uppercase tracking-[.1em]">Hideout</span><span class="text-parchment text-right">31:48</span><span class="text-blood text-right">−21</span>
+          </div>
+          <div class="grid grid-cols-[16px_50px_1fr_44px_44px] gap-2 items-center">
+            <span class="text-amber font-bold">W</span><span class="text-graphite">05-23</span><span class="text-parchment uppercase tracking-[.1em]">Dry Arabia</span><span class="text-parchment text-right">26:14</span><span class="text-olive text-right">+19</span>
+          </div>
+          <div class="grid grid-cols-[16px_50px_1fr_44px_44px] gap-2 items-center">
+            <span class="text-blood font-bold">L</span><span class="text-graphite">05-21</span><span class="text-parchment uppercase tracking-[.1em]">Altai</span><span class="text-parchment text-right">29:55</span><span class="text-blood text-right">−18</span>
+          </div>
+          <div class="grid grid-cols-[16px_50px_1fr_44px_44px] gap-2 items-center">
+            <span class="text-blood font-bold">L</span><span class="text-graphite">05-19</span><span class="text-parchment uppercase tracking-[.1em]">Boulder Bay</span><span class="text-parchment text-right">18:44</span><span class="text-blood text-right">−16</span>
+          </div>
+          <div class="grid grid-cols-[16px_50px_1fr_44px_44px] gap-2 items-center">
+            <span class="text-amber font-bold">W</span><span class="text-graphite">05-18</span><span class="text-parchment uppercase tracking-[.1em]">Mountain Pass</span><span class="text-parchment text-right">22:01</span><span class="text-olive text-right">+18</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hair-all bg-carbon p-4">
+        <div class="label-section mb-3">\\ Map Split · vs MNG</div>
+        <div class="space-y-1.5 mono text-[11px] tabular">
+          <div class="grid grid-cols-[1fr_40px_60px] gap-2"><span class="uppercase tracking-[.1em] text-parchment">Dry Arabia</span><span class="text-blood text-right">2-5</span><span class="text-blood text-right">28.5%</span></div>
+          <div class="grid grid-cols-[1fr_40px_60px] gap-2"><span class="uppercase tracking-[.1em] text-parchment">Altai</span><span class="text-blood text-right">1-4</span><span class="text-blood text-right">20.0%</span></div>
+          <div class="grid grid-cols-[1fr_40px_60px] gap-2"><span class="uppercase tracking-[.1em] text-parchment">Mountain Pass</span><span class="text-olive text-right">3-1</span><span class="text-olive text-right">75.0%</span></div>
+          <div class="grid grid-cols-[1fr_40px_60px] gap-2"><span class="uppercase tracking-[.1em] text-parchment">Hideout</span><span class="text-amber text-right">2-3</span><span class="text-amber text-right">40.0%</span></div>
+          <div class="grid grid-cols-[1fr_40px_60px] gap-2"><span class="uppercase tracking-[.1em] text-parchment">Boulder Bay</span><span class="text-amber text-right">2-3</span><span class="text-amber text-right">40.0%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================
+     MODULE 05 - MAP NOTES INDEX
+================================================================= -->
+<section class="mb-10">
+  <div class="flex items-end justify-between mb-3">
+    <div>
+      <div class="label-mini">// MODULE 05</div>
+      <h2 class="module-title mt-1">Terrain Index · Map Doctrine</h2>
+    </div>
+    <div class="flex items-center gap-4 text-[10px] tracking-[.22em] uppercase text-graphite">
+      <span>Pool S09 <span class="mono text-parchment">8 MAPS</span></span>
+      <span>Annotated <span class="mono text-amber">7</span> / <span class="mono text-parchment">8</span></span>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-4 gap-3" id="mapGrid">
+    <!-- map cards injected by JS -->
+  </div>
+</section>
+
+<!-- =================================================================
+     MODULE 06 - GAME DETAIL MOCK
+================================================================= -->
+<section class="mb-16">
+  <div class="flex items-end justify-between mb-3">
+    <div>
+      <div class="label-mini">// MODULE 06 · SORTIE INSPECT</div>
+      <h2 class="module-title mt-1">Game File · #84920154</h2>
+    </div>
+    <div class="flex items-center gap-3 text-[10px] tracking-[.22em] uppercase">
+      <span class="pill win">RESULT · W</span>
+      <span class="pill">RM_1V1</span>
+      <span class="pill">S09</span>
+      <span class="pill">RANKED</span>
+      <a class="mono text-amber tracking-[.18em]">[ AOE4WORLD ↗ ]</a>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-[1.4fr_1fr] gap-3">
+
+    <!-- LEFT: participants + note -->
+    <div class="hair-all bg-carbon">
+      <!-- header strip -->
+      <div class="px-4 py-3 border-b border-hairline flex items-center justify-between">
+        <div class="flex items-center gap-6">
+          <div>
+            <div class="label-mini">Started</div>
+            <div class="mono text-parchment text-[13px] tabular">2026-05-23 18:42:11 UTC</div>
+          </div>
+          <div>
+            <div class="label-mini">Duration</div>
+            <div class="mono text-parchment text-[13px] tabular">26:14</div>
+          </div>
+          <div>
+            <div class="label-mini">Map</div>
+            <div class="mono text-parchment text-[13px] tabular uppercase">Dry Arabia</div>
+          </div>
+          <div>
+            <div class="label-mini">Server</div>
+            <div class="mono text-parchment text-[13px] tabular">EU-WEST-3</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="dot-pulse"></span>
+          <span class="text-[10px] tracking-[.22em] uppercase text-graphite">Replay <span class="text-olive mono">CACHED</span></span>
+        </div>
+      </div>
+
+      <!-- participants table -->
+      <div class="px-4 py-2">
+        <div class="label-section mb-3">\\ Participants</div>
+        <table class="grid-table w-full">
+          <thead>
+            <tr>
+              <th class="w-[40px]"></th>
+              <th>Operator</th>
+              <th>Civ</th>
+              <th>Team</th>
+              <th class="text-right">MMR</th>
+              <th class="text-right">Δ</th>
+              <th class="text-right">APM</th>
+              <th class="text-right">Score</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background: rgba(196,136,74,0.06)">
+              <td class="text-amber font-bold">▸</td>
+              <td class="text-amber font-bold tracking-[.1em]">TORRY</td>
+              <td class="text-amber font-bold">TPL</td>
+              <td class="text-parchment">A</td>
+              <td class="text-parchment tabular text-right">1487</td>
+              <td class="text-olive tabular text-right">+19</td>
+              <td class="text-parchment tabular text-right">214</td>
+              <td class="text-parchment tabular text-right">38,420</td>
+              <td class="text-amber font-bold">VICTORY</td>
+            </tr>
+            <tr>
+              <td class="text-graphite">·</td>
+              <td class="text-parchment tracking-[.1em]">SteppeFox</td>
+              <td class="text-parchment">MNG</td>
+              <td class="text-parchment">B</td>
+              <td class="text-parchment tabular text-right">1492</td>
+              <td class="text-blood tabular text-right">−18</td>
+              <td class="text-parchment tabular text-right">263</td>
+              <td class="text-parchment tabular text-right">31,805</td>
+              <td class="text-blood font-bold">DEFEAT</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- per-game note -->
+      <div class="px-4 pt-3 pb-4 border-t border-hairline">
+        <div class="flex items-center justify-between mb-2">
+          <div class="label-section">\\ Sortie Notes · #84920154</div>
+          <div class="text-[10px] tracking-[.22em] uppercase text-graphite">Author <span class="mono text-parchment">TORRY</span> · Saved <span class="mono text-olive">19:09</span></div>
+        </div>
+<textarea class="tac-note" spellcheck="false" style="min-height:130px">Scout-deny worked. Killed his scout at 2:50 with the spear+horseman push,
+he never relocated my third relic spot. Aachen aura kicked in clean.
+
+Mistake: greedy Castle landmark — should have gone Wallenstein, lost ~40s
+to a mangudai pop that almost killed my mining camp. Salvaged by knight
+pivot off the Stable. Re-tag this game next week post-patch.</textarea>
+      </div>
+    </div>
+
+    <!-- RIGHT: raw payload + meta -->
+    <div class="space-y-3">
+      <div class="hair-all bg-carbon">
+        <div class="px-4 py-2 border-b border-hairline flex items-center justify-between">
+          <span class="label-section">\\ Raw Payload</span>
+          <span class="text-[10px] tracking-[.22em] uppercase text-graphite">JSON · <span class="mono text-parchment">v2</span></span>
+        </div>
+        <div class="p-4 mono text-[11px] leading-[1.55] tabular" style="background:#10110d">
+<pre class="whitespace-pre-wrap"><span class="text-graphite2">{</span>
+  <span class="text-graphite">"game_id"</span>: <span class="text-amber">84920154</span>,
+  <span class="text-graphite">"patch"</span>: <span class="text-parchment">"14.2.3651"</span>,
+  <span class="text-graphite">"leaderboard"</span>: <span class="text-parchment">"rm_solo"</span>,
+  <span class="text-graphite">"season"</span>: <span class="text-amber">9</span>,
+  <span class="text-graphite">"server"</span>: <span class="text-parchment">"eu-west-3"</span>,
+  <span class="text-graphite">"map_id"</span>: <span class="text-parchment">"dry_arabia"</span>,
+  <span class="text-graphite">"duration_s"</span>: <span class="text-amber">1574</span>,
+  <span class="text-graphite">"avg_mmr"</span>: <span class="text-amber">1489.5</span>,
+  <span class="text-graphite">"mmr_delta"</span>: <span class="text-olive">+19</span>,
+  <span class="text-graphite">"polled_at"</span>: <span class="text-parchment">"2026-05-23T19:08:57Z"</span>,
+  <span class="text-graphite">"replay_hash"</span>: <span class="text-parchment">"7af3 c812 91dd 04ba"</span>,
+  <span class="text-graphite">"verified"</span>: <span class="text-olive">true</span>
+<span class="text-graphite2">}</span></pre>
+        </div>
+      </div>
+
+      <div class="hair-all bg-carbon p-4">
+        <div class="label-section mb-3">\\ Per-Civ Doctrine Refs</div>
+        <div class="space-y-1.5 mono text-[11px]">
+          <div class="flex justify-between"><a class="text-amber tracking-[.1em]">/civ/templar.md</a><span class="text-graphite">REV 22</span></div>
+          <div class="flex justify-between"><a class="text-parchment tracking-[.1em]">/matchup/tpl-mng.md</a><span class="text-graphite">REV 14</span></div>
+          <div class="flex justify-between"><a class="text-parchment tracking-[.1em]">/map/dry_arabia.md</a><span class="text-graphite">REV 11</span></div>
+          <div class="flex justify-between"><a class="text-graphite2 tracking-[.1em]">/game/84920154.md</a><span class="text-graphite">REV 01</span></div>
+        </div>
+      </div>
+
+      <div class="hair-all bg-carbon p-4">
+        <div class="label-section mb-3">\\ Event Tape</div>
+        <div class="space-y-1 mono text-[10.5px] tabular">
+          <div class="grid grid-cols-[58px_1fr] gap-2"><span class="text-graphite">00:00</span><span class="text-parchment">MATCH START · DRY ARABIA · POS S</span></div>
+          <div class="grid grid-cols-[58px_1fr] gap-2"><span class="text-graphite">02:50</span><span class="text-amber">OPP SCOUT KILLED · SPEAR+HORSE</span></div>
+          <div class="grid grid-cols-[58px_1fr] gap-2"><span class="text-graphite">04:40</span><span class="text-parchment">FEUDAL TIER · AACHEN CHAPEL ↑</span></div>
+          <div class="grid grid-cols-[58px_1fr] gap-2"><span class="text-graphite">07:12</span><span class="text-parchment">RELIC ACQUIRED ×2</span></div>
+          <div class="grid grid-cols-[58px_1fr] gap-2"><span class="text-graphite">11:08</span><span class="text-blood">MANGUDAI POP · MINING CAMP −80HP</span></div>
+          <div class="grid grid-cols-[58px_1fr] gap-2"><span class="text-graphite">13:45</span><span class="text-parchment">CASTLE TIER · STABLES ×2</span></div>
+          <div class="grid grid-cols-[58px_1fr] gap-2"><span class="text-graphite">19:30</span><span class="text-amber">KNIGHT PUSH · KHAGAN PALACE −60%</span></div>
+          <div class="grid grid-cols-[58px_1fr] gap-2"><span class="text-graphite">26:14</span><span class="text-amber font-bold">VICTORY · RESIGN</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================
+     FOOTER STRIP
+================================================================= -->
+<footer class="hair-t pt-4 mt-4 flex items-center justify-between text-[10px] tracking-[.22em] uppercase text-graphite">
+  <div class="flex items-center gap-4">
+    <span class="mono text-parchment">AOE4-PORTAL</span>
+    <span>Tactical Build · V0.4.1</span>
+    <span>Build <span class="mono text-parchment">7af3·c812</span></span>
+  </div>
+  <div class="flex items-center gap-4">
+    <span>// Operator <span class="mono text-amber">TORRY</span></span>
+    <span>// Mode <span class="mono text-parchment">PRIVATE</span></span>
+    <span>// <span class="mono blink text-amber">REC</span></span>
+  </div>
+</footer>
+
+</main>
+
+<!-- =================================================================
+     SCRIPT
+================================================================= -->
+<script>
+  // ------- Live clock (UTC) -------
+  function tick() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const t = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+    const el = document.getElementById('liveClock');
+    if (el) el.textContent = t;
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // ------- Civ list (display order) -------
+  // Variants placed immediately after their parent so visual grouping is clear.
+  const CIVS = [
+    { code: 'ABB', name: 'Abbasid Dynasty',     variant: false },
+    { code: 'AYY', name: 'Ayyubids',            variant: true,  parent: 'ABB' },
+    { code: 'BYZ', name: 'Byzantines',          variant: false },
+    { code: 'CHI', name: 'Chinese',             variant: false },
+    { code: 'ZHU', name: "Zhu Xi's Legacy",     variant: true,  parent: 'CHI' },
+    { code: 'DEL', name: 'Delhi Sultanate',     variant: false },
+    { code: 'ENG', name: 'English',             variant: false },
+    { code: 'LAN', name: 'House of Lancaster',  variant: true,  parent: 'ENG' },
+    { code: 'FRE', name: 'French',              variant: false },
+    { code: 'JOA', name: "Jeanne d'Arc",        variant: true,  parent: 'FRE' },
+    { code: 'TPL', name: 'Knights Templar',     variant: true,  parent: 'FRE', main: true },
+    { code: 'HRE', name: 'Holy Roman Empire',   variant: false },
+    { code: 'DRA', name: 'Order of the Dragon', variant: true,  parent: 'HRE' },
+    { code: 'JAP', name: 'Japanese',            variant: false },
+    { code: 'MAL', name: 'Malians',             variant: false },
+    { code: 'MNG', name: 'Mongols',             variant: false },
+    { code: 'OTT', name: 'Ottomans',            variant: false },
+    { code: 'RUS', name: 'Rus',                 variant: false },
+  ];
+
+  // ------- Deterministic pseudo-random for plausible matrix data -------
+  function hashCode(s) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+  function rand01(seed) { return ((hashCode(seed) % 100000) / 100000); }
+
+  // Hand-tuned matchup hints for TPL row (so featured row looks intentional)
+  const TPL_HINT = {
+    ABB: { wr: 44.1, n: 34, note: true  },
+    AYY: { wr: 42.9, n: 7,  note: true  },
+    BYZ: { wr: 66.7, n: 12, note: true  },
+    CHI: { wr: 51.9, n: 27, note: true  },
+    ZHU: { wr: 53.8, n: 13, note: false },
+    DEL: { wr: 50.0, n: 18, note: true  },
+    ENG: { wr: 63.2, n: 19, note: true  },
+    LAN: { wr: 71.4, n: 14, note: true  },
+    FRE: { wr: 55.0, n: 20, note: true  },
+    JOA: { wr: 58.3, n: 12, note: false },
+    HRE: { wr: 61.5, n: 13, note: true  },
+    DRA: { wr: 48.0, n: 10, note: true  },
+    JAP: { wr: 41.7, n: 24, note: true  },
+    MAL: { wr: 56.3, n: 16, note: false },
+    MNG: { wr: 38.5, n: 26, note: true  },
+    OTT: { wr: 52.6, n: 19, note: true  },
+    RUS: { wr: 47.4, n: 19, note: false },
+  };
+
+  function pickWinrate(myCode, oppCode) {
+    if (myCode === 'TPL' && TPL_HINT[oppCode]) {
+      const h = TPL_HINT[oppCode];
+      return { wr: h.wr, n: h.n, note: h.note };
+    }
+    // Deterministic, but vary by pair
+    const r = rand01(myCode + '|' + oppCode);
+    const r2 = rand01(oppCode + '|' + myCode + '|n');
+    const r3 = rand01(myCode + oppCode + 'note');
+    const wr = Math.round((35 + r * 35) * 10) / 10;
+    let n = Math.floor(r2 * 22);
+    if (n < 0) n = 0;
+    const note = r3 > 0.78;
+    return { wr, n, note };
+  }
+
+  function wrClass(wr) {
+    if (wr >= 60) return 'wr-good elite';
+    if (wr >= 55) return 'wr-good strong';
+    if (wr >= 50) return 'wr-good';
+    if (wr >= 45) return 'wr-mid strong';
+    if (wr >= 40) return 'wr-mid';
+    if (wr >= 30) return 'wr-bad strong';
+    return 'wr-bad';
+  }
+
+  // ------- Build matrix -------
+  function buildMatrix() {
+    const wrap = document.getElementById('matrixWrap');
+    if (!wrap) return;
+
+    // Use a CSS grid with fixed cell width
+    const N = CIVS.length;
+    const rowLabelW = 96;
+    // Header row
+    let html = '';
+    html += `<div style="display:grid;grid-template-columns:${rowLabelW}px repeat(${N}, 28px);align-items:end">`;
+    html += `<div></div>`;
+    CIVS.forEach(c => {
+      const isMain = c.main;
+      const variant = c.variant;
+      html += `<div class="axis ${isMain ? 'main' : (variant ? 'variant' : '')}" style="height:78px;display:flex;align-items:flex-end;justify-content:center" title="${c.name}">
+        <span style="writing-mode:vertical-rl; transform:rotate(180deg); padding-bottom:4px">${c.code}</span>
+      </div>`;
+    });
+    html += `</div>`;
+
+    // Body rows
+    CIVS.forEach((row) => {
+      const isMain = row.main;
+      const variant = row.variant;
+      const rowClass = isMain ? 'tpl-row' : '';
+      html += `<div class="${rowClass}" style="display:grid;grid-template-columns:${rowLabelW}px repeat(${N}, 28px);">`;
+      // Row label
+      html += `<div class="axis ${isMain ? 'main' : (variant ? 'variant' : '')}" style="height:28px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px" title="${row.name}">${variant ? '<span style="color:#5b5853;margin-right:6px">└</span>' : ''}<span style="${isMain ? 'font-weight:800' : ''}">${row.code}</span></div>`;
+
+      CIVS.forEach((col) => {
+        if (row.code === col.code) {
+          html += `<div class="cell diag" title="${row.name} vs ${col.name} (mirror)"></div>`;
+          return;
+        }
+        const m = pickWinrate(row.code, col.code);
+        const opacity = m.n === 0 ? 0.35 : (m.n < 3 ? 0.55 : 1);
+        const cellClass = m.n < 3 ? 'wr-empty' : wrClass(m.wr);
+        const barW = Math.min(26, Math.max(2, Math.floor(m.n * 1.4)));
+        const isSelected = (row.code === 'TPL' && col.code === 'MNG');
+        html += `
+          <div class="cell ${cellClass} ${isSelected ? 'selected' : ''}"
+               data-r="${row.code}" data-c="${col.code}"
+               data-wr="${m.wr}" data-n="${m.n}"
+               style="opacity:${opacity}"
+               title="${row.name} → ${col.name}  ·  WR ${m.wr.toFixed(1)}%  ·  N=${m.n}">
+            ${m.note ? '<div class="note-mark"></div>' : ''}
+            ${m.n >= 3 ? `<div class="sample-bar" style="width:${barW}px"></div>` : ''}
+            <span class="wr">${m.n >= 3 ? Math.round(m.wr) : '·'}</span>
+          </div>`;
+      });
+
+      html += `</div>`;
+    });
+
+    wrap.innerHTML = html;
+
+    // Wire up cell click
+    wrap.querySelectorAll('.cell:not(.diag)').forEach(cell => {
+      cell.addEventListener('click', () => {
+        wrap.querySelectorAll('.cell.selected').forEach(c => c.classList.remove('selected'));
+        cell.classList.add('selected');
+        const r = cell.getAttribute('data-r');
+        const c = cell.getAttribute('data-c');
+        const wr = parseFloat(cell.getAttribute('data-wr'));
+        const n = parseInt(cell.getAttribute('data-n'), 10);
+        const sel = `${r} ▸ ${c}`;
+        const matrixSel = document.getElementById('matrixSel');
+        const cellSelLabel = document.getElementById('cellSelLabel');
+        if (matrixSel) matrixSel.textContent = sel;
+        if (cellSelLabel) cellSelLabel.textContent = sel;
+        const cellN = document.getElementById('cellN');
+        const cellW = document.getElementById('cellW');
+        const cellD = document.getElementById('cellD');
+        if (cellN) cellN.textContent = n;
+        if (cellW) cellW.textContent = wr.toFixed(1);
+        if (cellD) {
+          const d = Math.round((wr - 50) * n * 0.4);
+          cellD.textContent = (d >= 0 ? '+' : '−') + Math.abs(d);
+          cellD.classList.toggle('text-blood', d < 0);
+          cellD.classList.toggle('text-olive', d >= 0);
+        }
+      });
+    });
+  }
+
+  buildMatrix();
+
+  // ------- Map cards -------
+  const MAPS = [
+    { name: 'Dry Arabia',       w: 18, l: 11, notes: true,  note_lines: 4, tag: 'Open · Land' },
+    { name: 'Boulder Bay',      w: 9,  l: 6,  notes: true,  note_lines: 3, tag: 'Hybrid · Naval' },
+    { name: 'King of the Hill', w: 7,  l: 5,  notes: true,  note_lines: 2, tag: 'Open · Center' },
+    { name: 'Mountain Pass',    w: 11, l: 4,  notes: true,  note_lines: 5, tag: 'Closed · Choke' },
+    { name: 'Ancient Spires',   w: 8,  l: 7,  notes: true,  note_lines: 3, tag: 'Open · Sacred' },
+    { name: 'Lipany',           w: 6,  l: 3,  notes: true,  note_lines: 2, tag: 'Open · Forest' },
+    { name: 'Hideout',          w: 5,  l: 9,  notes: true,  note_lines: 4, tag: 'Closed · Walls' },
+    { name: 'Altai',            w: 4,  l: 6,  notes: false, note_lines: 0, tag: 'Open · Steppes' },
+  ];
+
+  function pctClass(wr) {
+    if (wr >= 60) return 'text-olive';
+    if (wr >= 50) return 'text-amber';
+    return 'text-blood';
+  }
+
+  function buildMaps() {
+    const grid = document.getElementById('mapGrid');
+    if (!grid) return;
+    grid.innerHTML = MAPS.map((m, i) => {
+      const total = m.w + m.l;
+      const wr = (m.w / total) * 100;
+      const wrTxt = wr.toFixed(1);
+      const colCls = pctClass(wr);
+      const fillW = Math.round((m.w / total) * 100);
+      const id = String(i + 1).padStart(2, '0');
+      // tiny sparkline (deterministic)
+      const sparkChars = '▁▂▃▄▅▆▇█';
+      let spark = '';
+      for (let k = 0; k < 18; k++) {
+        const r = rand01(m.name + 'k' + k);
+        spark += sparkChars[Math.floor(r * 8)];
+      }
+      return `
+        <div class="map-card p-4 relative">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="label-mini">MAP·${id}</div>
+              <div class="mono text-parchment text-[14px] font-bold tracking-[.12em] uppercase mt-1">${m.name}</div>
+              <div class="text-[10px] tracking-[.22em] uppercase text-graphite mt-1">${m.tag}</div>
+            </div>
+            <div class="text-right">
+              <div class="label-mini">Win%</div>
+              <div class="mono ${colCls} text-[20px] font-bold tabular">${wrTxt}</div>
+            </div>
+          </div>
+          <div class="mt-3 mono text-[11px] tabular flex items-baseline gap-3">
+            <span class="text-amber font-bold">${m.w}W</span>
+            <span class="text-blood font-bold">${m.l}L</span>
+            <span class="text-graphite ml-auto">N=${total}</span>
+          </div>
+          <div class="mt-2 h-[6px] hair-all" style="background:#0c0d0a">
+            <div style="height:100%;width:${fillW}%;background:#6b8e5a"></div>
+          </div>
+          <div class="spark text-graphite text-[14px] tracking-tighter mt-3">${spark}</div>
+          <div class="mt-3 flex items-center justify-between text-[10px] tracking-[.22em] uppercase">
+            <span class="${m.notes ? 'text-amber' : 'text-graphite2'}">
+              ${m.notes ? `[ NOTES · ${m.note_lines} BLK ]` : '[ NO NOTES ]'}
+            </span>
+            <span class="text-graphite">/maps/${m.name.toLowerCase().replace(/[^a-z]+/g,'_')}.md</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  buildMaps();
+</script>
+
+</body>
+</html>

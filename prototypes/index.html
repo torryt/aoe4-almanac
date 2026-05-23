@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AoE4 Portal — design prototypes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            page: '#f6f3ee',
+            ink: '#1a1916',
+            mute: '#6b665d',
+            line: '#d8d2c4',
+            accent: '#8a1c1c',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    html, body { background: #f6f3ee; }
+    body { font-family: 'Fraunces', Georgia, serif; color: #1a1916; }
+    .num { font-variant-numeric: tabular-nums; }
+    .rule { background: linear-gradient(to right, transparent, #c4b896 20%, #c4b896 80%, transparent); height: 1px; }
+    .card { transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 18px 40px -24px rgba(26,25,22,0.35); }
+    .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 2px; vertical-align: middle; border: 1px solid rgba(0,0,0,0.08); }
+    .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b665d; }
+  </style>
+</head>
+
+<body class="min-h-screen">
+
+  <main class="max-w-5xl mx-auto px-10 py-16">
+
+    <!-- masthead -->
+    <header class="mb-16">
+      <div class="eyebrow mb-3">Prototypes · vol. i</div>
+      <h1 class="font-display text-6xl leading-[0.95] tracking-tight" style="font-variation-settings: 'opsz' 144;">
+        AoE4 Portal<br/>
+        <span class="italic text-mute font-normal" style="font-variation-settings: 'opsz' 144;">three directions.</span>
+      </h1>
+      <div class="rule mt-10"></div>
+      <p class="mt-8 max-w-2xl text-lg leading-relaxed text-ink/80">
+        Visual prototypes only. No backend, no router — a single self-contained HTML file per direction, packed with mock data so each surface can be felt rather than imagined. Open each, scroll the full page, then pick.
+      </p>
+      <p class="mt-3 max-w-2xl text-sm text-mute italic">
+        The matchup grid is the hero element in every direction — that's the one to judge hardest.
+      </p>
+    </header>
+
+    <!-- prototypes -->
+    <section class="space-y-10">
+
+      <!-- TACTICAL -->
+      <a href="./tactical.html" class="card block bg-white/70 backdrop-blur rounded-sm overflow-hidden ring-1 ring-line">
+        <div class="grid grid-cols-12 gap-0">
+          <!-- visual -->
+          <div class="col-span-5 relative" style="background: #0c0d0a;">
+            <div class="absolute inset-0" style="background-image: repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(255,255,255,0.025) 3px, rgba(255,255,255,0.025) 4px);"></div>
+            <div class="relative p-8 h-full flex flex-col justify-between text-[#e8e4d8] font-mono text-[10px] tracking-[0.18em]">
+              <div>
+                <div class="text-[#c4884a]">// SECTOR 02</div>
+                <div class="text-[#7d7a73] mt-1">MATCHUP MATRIX</div>
+              </div>
+              <div class="grid grid-cols-8 gap-[2px] my-6">
+                <!-- matrix pattern -->
+                <div class="aspect-square" style="background:#6b8e5a"></div>
+                <div class="aspect-square" style="background:#1a1c18"></div>
+                <div class="aspect-square" style="background:#c4884a;opacity:.7"></div>
+                <div class="aspect-square" style="background:#6b8e5a;opacity:.8"></div>
+                <div class="aspect-square" style="background:#a83232;opacity:.7"></div>
+                <div class="aspect-square" style="background:#1a1c18"></div>
+                <div class="aspect-square" style="background:#6b8e5a;opacity:.6"></div>
+                <div class="aspect-square" style="background:#c4884a"></div>
+                <div class="aspect-square" style="background:#1a1c18"></div>
+                <div class="aspect-square" style="background:#6b8e5a;opacity:.9"></div>
+                <div class="aspect-square" style="background:#a83232;opacity:.6"></div>
+                <div class="aspect-square" style="background:#c4884a;opacity:.8"></div>
+                <div class="aspect-square" style="background:#1a1c18"></div>
+                <div class="aspect-square" style="background:#6b8e5a"></div>
+                <div class="aspect-square" style="background:#1a1c18"></div>
+                <div class="aspect-square" style="background:#a83232;opacity:.8"></div>
+                <div class="aspect-square" style="background:#c4884a;opacity:.5"></div>
+                <div class="aspect-square" style="background:#6b8e5a;opacity:.7"></div>
+                <div class="aspect-square" style="background:#1a1c18"></div>
+                <div class="aspect-square" style="background:#6b8e5a;opacity:.8"></div>
+                <div class="aspect-square" style="background:#c4884a"></div>
+                <div class="aspect-square" style="background:#1a1c18"></div>
+                <div class="aspect-square" style="background:#a83232;opacity:.7"></div>
+                <div class="aspect-square" style="background:#6b8e5a;opacity:.5"></div>
+              </div>
+              <div class="flex justify-between text-[#7d7a73]">
+                <span>TPL ▸ MNG</span>
+                <span class="text-[#c4884a] num">W 62.4%</span>
+              </div>
+            </div>
+          </div>
+          <!-- text -->
+          <div class="col-span-7 p-10">
+            <div class="eyebrow">No. 01 · Tactical War Room</div>
+            <h2 class="font-display text-4xl mt-2 mb-4" style="font-variation-settings:'opsz' 144;">Bloomberg terminal for a person who plays AoE4 too seriously.</h2>
+            <p class="text-ink/80 leading-relaxed mb-6">
+              Brutalist dark UI. Dense data, hairline grids, mono codes, amber as a signature. Reads like a sortie planner — every cell is doing work. The matchup grid is a true matrix with hover-inspect; the dashboard reads like a flight strip.
+            </p>
+            <div class="flex flex-wrap gap-x-8 gap-y-2 text-sm text-mute">
+              <div><span class="swatch" style="background:#0c0d0a"></span> <span class="swatch" style="background:#c4884a"></span> <span class="swatch" style="background:#6b8e5a"></span> <span class="swatch" style="background:#a83232"></span></div>
+              <div>JetBrains Mono · Space Grotesk</div>
+              <div class="font-mono text-xs num">1459 lines</div>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <!-- ALMANAC -->
+      <a href="./almanac.html" class="card block bg-white/70 backdrop-blur rounded-sm overflow-hidden ring-1 ring-line">
+        <div class="grid grid-cols-12 gap-0">
+          <div class="col-span-5 relative p-10" style="background: #f1ece4;">
+            <div class="text-[10px] tracking-[0.22em] uppercase text-[#5b574e]">Vol. iii · No. vii</div>
+            <div class="font-display text-[120px] leading-none mt-3 text-[#1c1c1a] num" style="font-variation-settings:'opsz' 144; font-weight:700;">58</div>
+            <div class="font-display italic text-xl text-[#5b574e] mt-1" style="font-variation-settings:'opsz' 144;">games this season</div>
+            <div class="mt-8 grid grid-cols-3 gap-4 text-sm num">
+              <div>
+                <div class="text-[10px] tracking-[0.18em] uppercase text-[#5b574e]">W/L</div>
+                <div class="font-display text-2xl text-[#1c1c1a]" style="font-variation-settings:'opsz' 144;">36–22</div>
+              </div>
+              <div>
+                <div class="text-[10px] tracking-[0.18em] uppercase text-[#5b574e]">Rating</div>
+                <div class="font-display text-2xl text-[#9b2b2b]" style="font-variation-settings:'opsz' 144;">+84</div>
+              </div>
+              <div>
+                <div class="text-[10px] tracking-[0.18em] uppercase text-[#5b574e]">Streak</div>
+                <div class="font-display text-2xl text-[#1c1c1a]" style="font-variation-settings:'opsz' 144;">W6</div>
+              </div>
+            </div>
+            <div class="absolute bottom-6 left-10 right-10 h-px" style="background:#7a6a4a;opacity:.35"></div>
+            <div class="absolute bottom-3 left-10 text-[10px] tracking-[0.22em] uppercase text-[#7a6a4a]">Last reading · 14s ago</div>
+          </div>
+          <div class="col-span-7 p-10">
+            <div class="eyebrow">No. 02 · Editorial Almanac</div>
+            <h2 class="font-display text-4xl mt-2 mb-4" style="font-variation-settings:'opsz' 144;">A leather-bound annual edition of one person's career.</h2>
+            <p class="text-ink/80 leading-relaxed mb-6">
+              Quiet, intelligent, magazine-grade typography. Big editorial numerals, Roman-numeral mastheads, tabular density on cream. One signature red — used like a single red marginal stroke. The matchup grid reads like a small-multiples plate from a stats almanac.
+            </p>
+            <div class="flex flex-wrap gap-x-8 gap-y-2 text-sm text-mute">
+              <div><span class="swatch" style="background:#f1ece4"></span> <span class="swatch" style="background:#1c1c1a"></span> <span class="swatch" style="background:#9b2b2b"></span> <span class="swatch" style="background:#7a6a4a"></span></div>
+              <div>Cormorant Garamond · Inter Tight</div>
+              <div class="font-mono text-xs num">1993 lines</div>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <!-- GOTHIC -->
+      <a href="./gothic.html" class="card block bg-white/70 backdrop-blur rounded-sm overflow-hidden ring-1 ring-line">
+        <div class="grid grid-cols-12 gap-0">
+          <div class="col-span-5 relative" style="background:#0a0a1e;">
+            <div class="absolute inset-0" style="background:radial-gradient(circle at 50% 35%, rgba(201,162,74,0.18), transparent 55%);"></div>
+            <div class="relative p-8 h-full flex flex-col items-center justify-center text-[#e6dfc4]">
+              <!-- mini rose window -->
+              <svg viewBox="-100 -100 200 200" class="w-56 h-56">
+                <defs>
+                  <radialGradient id="hubGlow" cx="0" cy="0" r="1">
+                    <stop offset="0%" stop-color="#c9a24a" stop-opacity="0.8"/>
+                    <stop offset="100%" stop-color="#7a0a1a" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <!-- 12 spokes × 4 rings annular sectors -->
+                <g id="rose"></g>
+                <circle r="14" fill="url(#hubGlow)"/>
+                <text x="0" y="4" text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="#c9a24a">✠</text>
+              </svg>
+              <div class="mt-4 text-center">
+                <div class="font-display italic text-[#c9a24a]" style="font-family:'Fraunces',serif;">Rosa Templi</div>
+                <div class="text-[10px] tracking-[0.22em] uppercase text-[#8a7d5a] mt-1">xxiii · v · mmxxvi</div>
+              </div>
+            </div>
+            <script>
+              (function(){
+                const g = document.getElementById('rose');
+                const spokes = 12, rings = 4;
+                const r0 = 22, r1 = 86;
+                const palette = ['#1a2a4a','#2a4a8a','#7a0a1a','#c9a24a','#13132a'];
+                const arc = (r, a) => [r*Math.cos(a), r*Math.sin(a)];
+                for (let s = 0; s < spokes; s++) {
+                  for (let r = 0; r < rings; r++) {
+                    const a0 = (s / spokes) * Math.PI * 2 - Math.PI/2;
+                    const a1 = ((s+1) / spokes) * Math.PI * 2 - Math.PI/2;
+                    const ri = r0 + (r/rings) * (r1-r0);
+                    const ro = r0 + ((r+1)/rings) * (r1-r0);
+                    const [x1,y1] = arc(ri, a0);
+                    const [x2,y2] = arc(ro, a0);
+                    const [x3,y3] = arc(ro, a1);
+                    const [x4,y4] = arc(ri, a1);
+                    const fill = palette[(s * 7 + r * 3) % palette.length];
+                    const path = `M${x1} ${y1} L${x2} ${y2} A${ro} ${ro} 0 0 1 ${x3} ${y3} L${x4} ${y4} A${ri} ${ri} 0 0 0 ${x1} ${y1} Z`;
+                    const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    el.setAttribute('d', path);
+                    el.setAttribute('fill', fill);
+                    el.setAttribute('stroke', '#c9a24a');
+                    el.setAttribute('stroke-width', '0.4');
+                    el.setAttribute('opacity', '0.92');
+                    g.appendChild(el);
+                  }
+                }
+              })();
+            </script>
+          </div>
+          <div class="col-span-7 p-10">
+            <div class="eyebrow">No. 03 · Stained Glass Gothic</div>
+            <h2 class="font-display text-4xl mt-2 mb-4" style="font-variation-settings:'opsz' 144;">A digital cathedral interior. The matchup grid is a rose window.</h2>
+            <p class="text-ink/80 leading-relaxed mb-6">
+              Full lean into the Templar identity. Cobalt, ruby, gold leaf, candlelight on dark cathedral stone. The 18-spoke rose window is real SVG geometry — not a placeholder. Riskier than the others; if it works, nothing else looks like it.
+            </p>
+            <div class="flex flex-wrap gap-x-8 gap-y-2 text-sm text-mute">
+              <div><span class="swatch" style="background:#0a0a1e"></span> <span class="swatch" style="background:#1a2a4a"></span> <span class="swatch" style="background:#7a0a1a"></span> <span class="swatch" style="background:#c9a24a"></span></div>
+              <div>Cinzel · Cormorant Garamond · EB Garamond</div>
+              <div class="font-mono text-xs num">1818 lines</div>
+            </div>
+          </div>
+        </div>
+      </a>
+
+    </section>
+
+    <!-- closing -->
+    <footer class="mt-20">
+      <div class="rule"></div>
+      <div class="mt-6 flex justify-between items-baseline text-sm text-mute">
+        <div class="italic font-display" style="font-variation-settings:'opsz' 144;">prototypes are static — open in any browser, no build step required.</div>
+        <div class="font-mono text-xs num">/prototypes — anno mmxxvi</div>
+      </div>
+    </footer>
+
+  </main>
+
+</body>
+</html>
