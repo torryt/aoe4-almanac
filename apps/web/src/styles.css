@@ -1,8 +1,22 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: oklch(0.55 0.18 50);
-  --color-brand-fg: oklch(0.98 0.02 50);
+  --color-paper: #f1ece4;
+  --color-paper-raised: #e8e1d4;
+  --color-paper-deep: #ddd5c4;
+  --color-ink: #1c1c1a;
+  --color-graphite: #5b574e;
+  --color-red-signature: #9b2b2b;
+  --color-red-deep: #7a1f1f;
+  --color-gold-dim: #7a6a4a;
+  --color-gold-pale: #b8a87f;
+
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Inter Tight", system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: light;
 }
 
 html,
@@ -11,19 +25,573 @@ body,
   height: 100%;
 }
 
+html,
 body {
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    sans-serif;
+  background: #f1ece4;
+  color: #1c1c1a;
+  font-family: "Inter Tight", system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11", "ss03";
+}
+
+* {
+  font-variant-numeric: tabular-nums;
+}
+
+.font-display {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-feature-settings: "lnum", "tnum";
+}
+
+/* Paper noise — single tiny SVG, very low opacity, fixed so it doesn't
+   shift on scroll. Gives the whole page a subtle tooth. */
+.paper-noise::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.11  0 0 0 0 0.10  0 0 0 0 0.09  0 0 0 0.055 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+.vignette::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(28, 28, 26, 0.05) 100%
+  );
+}
+
+.eyebrow {
+  font-family: "Inter Tight", sans-serif;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: #5b574e;
+}
+
+.eyebrow-tight {
+  font-family: "Inter Tight", sans-serif;
+  font-size: 9.5px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #5b574e;
+}
+
+.smallcaps {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+}
+
+.rule {
+  border: 0;
+  border-top: 1px solid rgba(28, 28, 26, 0.18);
+}
+.rule-faint {
+  border: 0;
+  border-top: 1px solid rgba(28, 28, 26, 0.1);
+}
+.rule-gold {
+  border: 0;
+  border-top: 1px solid #7a6a4a;
+}
+.rule-double {
+  border: 0;
+  border-top: 1px solid rgba(28, 28, 26, 0.6);
+  border-bottom: 1px solid rgba(28, 28, 26, 0.6);
+  height: 4px;
+}
+.rule-thick {
+  border: 0;
+  border-top: 2px solid #1c1c1a;
+}
+
+.dropcap::first-letter {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 700;
+  float: left;
+  font-size: 64px;
+  line-height: 0.85;
+  padding: 6px 10px 0 0;
+  color: #1c1c1a;
+}
+
+/* Ornament — a thin centered fleuron made of typography. */
+.ornament {
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  color: #7a6a4a;
+  letter-spacing: 0.6em;
+  font-size: 13px;
+}
+
+/* Matchup grid */
+.grid-cell {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-right: 1px solid rgba(28, 28, 26, 0.08);
+  border-bottom: 1px solid rgba(28, 28, 26, 0.08);
+  background: transparent;
+  transition: background-color 120ms ease;
+  cursor: pointer;
+  display: block;
+}
+.grid-cell:hover {
+  background: rgba(28, 28, 26, 0.06);
+}
+.grid-cell.selected {
+  background: rgba(155, 43, 43, 0.08);
+}
+.grid-cell .dot {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.grid-cell .dot.filled {
+  background: #9b2b2b;
+}
+.grid-cell .dot.hollow {
+  border: 1px solid rgba(28, 28, 26, 0.3);
+}
+.grid-cell .wr {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 8.5px;
+  font-weight: 500;
+  color: #5b574e;
+  letter-spacing: 0.02em;
+}
+.grid-cell.diag {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0,
+    transparent 4px,
+    rgba(28, 28, 26, 0.07) 4px,
+    rgba(28, 28, 26, 0.07) 5px
+  );
+  cursor: default;
+}
+.grid-cell.diag:hover {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0,
+    transparent 4px,
+    rgba(28, 28, 26, 0.07) 4px,
+    rgba(28, 28, 26, 0.07) 5px
+  );
+}
+
+.row-label {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: right;
+  padding-right: 10px;
+  color: #1c1c1a;
+  white-space: nowrap;
+  line-height: 1;
+}
+.row-label.main {
+  color: #9b2b2b;
+  font-weight: 700;
+}
+.row-label.variant {
+  font-size: 12px;
+  font-style: italic;
+  color: #5b574e;
+  padding-left: 14px;
+  position: relative;
+}
+.row-label.variant.main {
+  color: #9b2b2b;
+  font-style: italic;
+  font-weight: 600;
+}
+.row-label.variant::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 4px;
+  height: 1px;
+  background: rgba(28, 28, 26, 0.4);
+}
+
+.col-label {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1c1c1a;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  line-height: 1;
+  padding-bottom: 6px;
+}
+.col-label.variant {
+  font-style: italic;
+  color: #5b574e;
+  font-size: 11px;
+}
+.col-label.main {
+  color: #9b2b2b;
+  font-weight: 600;
+}
+
+/* Game-log table */
+.log-row {
+  display: grid;
+  grid-template-columns: 80px 1.4fr 1.2fr 80px 60px 70px;
+  gap: 24px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(28, 28, 26, 0.1);
+  align-items: baseline;
+}
+.log-row:last-child {
+  border-bottom: 0;
+}
+.result-W {
+  color: #1c1c1a;
+  font-weight: 600;
+}
+.result-L {
+  color: #9b2b2b;
+  font-weight: 600;
+}
+.result-D {
+  color: #5b574e;
+  font-weight: 600;
+  font-style: italic;
+}
+
+/* Magazine textarea */
+textarea.essay {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  resize: none;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 18px;
+  line-height: 1.55;
+  color: #1c1c1a;
+  font-weight: 400;
+}
+textarea.essay::selection {
+  background: rgba(155, 43, 43, 0.18);
+}
+
+.map-card {
+  background: #e8e1d4;
+  padding: 22px 22px 20px;
+  border-top: 2px solid #1c1c1a;
+  position: relative;
+}
+.map-card .corner {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 11px;
+  color: #7a6a4a;
+}
+
+.stat-block {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 18px;
+  font-size: 13px;
+}
+.stat-block dt {
+  font-family: "Inter Tight", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #5b574e;
+  font-weight: 500;
+  align-self: center;
+}
+.stat-block dd {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 17px;
+  color: #1c1c1a;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.pull-quote {
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1.35;
+  color: #1c1c1a;
+  border-left: 2px solid #9b2b2b;
+  padding-left: 18px;
+}
+
+.ticker {
+  font-family: "Inter Tight", sans-serif;
+  font-size: 11px;
+  color: #5b574e;
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+.ticker .live::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #9b2b2b;
+  margin-right: 7px;
+  transform: translateY(-1px);
+}
+
+.marginalia {
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 13px;
+  color: #5b574e;
+  line-height: 1.5;
+}
+
+.number-mega {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 700;
+  font-size: 196px;
+  line-height: 0.82;
+  letter-spacing: -0.04em;
+  color: #1c1c1a;
+}
+.number-mega .slash {
+  color: #9b2b2b;
+  font-weight: 500;
+  font-style: italic;
+}
+.number-mega .denom {
+  color: #5b574e;
+  font-weight: 500;
+  font-style: italic;
+}
+
+.kicker {
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 16px;
+  color: #5b574e;
+}
+
+/* Spread divider */
+.spread {
+  scroll-margin-top: 40px;
+}
+
+/* Subtle inline "stitch" */
+.stitch {
+  display: inline-block;
+  width: 24px;
+  height: 1px;
+  background: #7a6a4a;
+  vertical-align: middle;
+  margin: 0 10px 4px;
+}
+
+/* Pagination */
+.folio {
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 12px;
+  color: #7a6a4a;
+  letter-spacing: 0.08em;
+}
+
+/* Page navigation links — masthead-friendly anchors */
+.nav-link {
+  font-family: "Inter Tight", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: #5b574e;
+  padding: 4px 8px;
+  border-bottom: 1px solid transparent;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.nav-link:hover {
+  color: #1c1c1a;
+  border-bottom-color: #7a6a4a;
+}
+.nav-link.active {
+  color: #9b2b2b;
+  border-bottom-color: #9b2b2b;
+}
+
+/* Magazine-style form inputs */
+.almanac-input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(28, 28, 26, 0.3);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 18px;
+  color: #1c1c1a;
+  padding: 6px 2px;
+  outline: none;
+  width: 100%;
+}
+.almanac-input:focus {
+  border-bottom-color: #9b2b2b;
+}
+
+.almanac-select {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(28, 28, 26, 0.3);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 17px;
+  color: #1c1c1a;
+  padding: 6px 2px;
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%237a6a4a' d='M0 0l5 6 5-6z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
+  background-size: 8px;
+  padding-right: 18px;
+}
+.almanac-select:focus {
+  border-bottom-color: #9b2b2b;
+}
+
+/* A primary "do it" button styled to look like a wax seal / signet */
+.btn-signet {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Inter Tight", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #f1ece4;
+  background: #9b2b2b;
+  padding: 10px 18px;
+  border: 0;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.btn-signet:hover {
+  background: #7a1f1f;
+}
+.btn-signet:disabled {
+  background: #b8a87f;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Inter Tight", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #1c1c1a;
+  background: transparent;
+  padding: 10px 18px;
+  border: 1px solid rgba(28, 28, 26, 0.3);
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+.btn-ghost:hover {
+  border-color: #1c1c1a;
+}
+.btn-ghost:disabled {
+  color: #5b574e;
+  border-color: rgba(28, 28, 26, 0.15);
+  cursor: not-allowed;
 }
 
 .prose-note {
-  white-space: pre-wrap;
-  line-height: 1.55;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 17px;
+  line-height: 1.6;
+  color: #1c1c1a;
+}
+.prose-note p {
+  margin: 0 0 0.85em;
+}
+.prose-note strong {
+  font-weight: 600;
+}
+.prose-note em {
+  font-style: italic;
+}
+.prose-note h1,
+.prose-note h2,
+.prose-note h3 {
+  font-weight: 600;
+  margin: 1em 0 0.4em;
+}
+.prose-note h1 {
+  font-size: 28px;
+}
+.prose-note h2 {
+  font-size: 22px;
+}
+.prose-note h3 {
+  font-size: 19px;
+}
+.prose-note ul,
+.prose-note ol {
+  margin: 0 0 0.85em 1.4em;
+}
+.prose-note ul {
+  list-style: disc;
+}
+.prose-note ol {
+  list-style: decimal;
+}
+.prose-note code {
+  font-family: ui-monospace, monospace;
+  font-size: 14px;
+  background: rgba(28, 28, 26, 0.06);
+  padding: 1px 4px;
+}
+
+/* Civ chip — small typographic mark used in tables and headers */
+.civ-chip {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 15px;
+  color: #1c1c1a;
+  white-space: nowrap;
+}
+.civ-chip.variant {
+  font-style: italic;
+  color: #5b574e;
+}
+.civ-chip.main {
+  color: #9b2b2b;
+  font-weight: 600;
 }

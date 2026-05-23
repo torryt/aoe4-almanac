@@ -320,6 +320,22 @@ Open http://localhost:5173, go to Settings → search your aoe4world name → Li
 - ✓ Vite serves index.html; route bundles compile; full `vite build` succeeds.
 - ✓ Lint + typecheck clean across all packages.
 
+### Step 12 — Canonical civ slugs ✓
+Backed out the short-form aoe4world slugs (`templar`, `zhuxi`, `hre`, …) and adopted the long-form `id` (`knights_templar`, `zhu_xis_legacy`, `holy_roman_empire`, …) as the canonical DB key. Short forms are kept as DB aliases and normalized at ingest. Display is now driven by `civilizations.name` (or `prettyCivName` from shared as a fallback) — no slug ever surfaces to the user.
+
+- [x] `packages/shared/src/civSlugs.ts`: canonical slug constants, `VARIANT_PARENTS`, `SHORT_SLUG_TO_CANONICAL`, `CIV_NAMES`, `prettyCivName`, `canonicalCivSlug`.
+- [x] `seed-civs.ts`: store `c.id` as slug; register `c.slug` + `c.abbr` as `civ_slug_aliases`.
+- [x] `scripts/canonicalize-civ-slugs.ts`: one-off migration that rewrites short → canonical in every table.
+- [x] `apps/web/src/lib/civNames.ts`: `useCivNames` hook; reads from `/civs` query, falls back to shared `prettyCivName`.
+- [x] Web UI: matchup grid, recent essays, dashboard quick-links, and matchup editor headline all display names rather than slugs.
+- [x] `const TEMPLAR = "templar"` → `KNIGHTS_TEMPLAR` constant; default civ in `/games/new` uses the constant.
+
+To roll out on an existing DB:
+```
+pnpm --filter @aoe4-portal/server db:seed
+pnpm --filter @aoe4-portal/server db:canonicalize-civ-slugs
+```
+
 ### Known follow-ups (not blocking)
 - The aoe4world `inFlight` mutex serializes ALL outbound calls (including the search proxy) — for a single-user local app this is fine; revisit if hosting.
 - Sync of huge accounts (10k+ games like pro players) will burn through the 30-req/min cap and the synchronous-better-sqlite3 inserts will briefly starve the event loop between API calls. For a normal player profile (hundreds of games) it's a few seconds.

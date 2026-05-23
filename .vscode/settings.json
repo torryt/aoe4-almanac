@@ -1,0 +1,14 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "eslint.enable": false,
+  "editor.formatOnSave": false,
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.turbo": true
+  },
+  "js/ts.tsdk.path": "node_modules/typescript/lib"
+}

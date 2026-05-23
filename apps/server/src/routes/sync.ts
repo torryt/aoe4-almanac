@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { syncRunBodySchema } from "@aoe4-portal/shared";
 import type { AppContext } from "../auth/middleware.ts";
+import { logError } from "../log.ts";
 import { isSyncRunning, listSyncState, runSync } from "../services/sync.ts";
 import { subscribeSync, type SyncEvent } from "../services/syncEvents.ts";
 
@@ -13,8 +14,7 @@ syncRoutes.post("/run", zValidator("json", syncRunBodySchema), async (c) => {
   const reqId = c.get("reqId");
   const { full } = c.req.valid("json");
   runSync(userId, full ?? false, { reqId }).catch((e) => {
-    // eslint-disable-next-line no-console
-    console.error(`[req ${reqId}] sync failed:`, e);
+    logError(reqId, "sync failed:", e);
   });
   return c.json({ ok: true });
 });

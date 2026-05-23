@@ -16,7 +16,7 @@ import {
   normalizeResult,
 } from "./normalize.ts";
 import { emitSync } from "./syncEvents.ts";
-import { tracer } from "../telemetry.ts";
+import { log } from "../log.ts";
 
 const SYNC_KEY = "all"; // single bucket; per-leaderboard slicing can be added later
 
@@ -45,123 +45,102 @@ async function doRunSync(
   full: boolean,
   opts: SyncOpts,
 ): Promise<void> {
-  return tracer.startActiveSpan("sync.run", async (span) => {
-    const startWallMs = performance.now();
-    span.setAttribute("user.id", userId);
-    span.setAttribute("sync.full", full);
-    if (opts.reqId) span.setAttribute("req.id", opts.reqId);
+  const startWallMs = performance.now();
 
-    const profileRow = db()
-      .select({ profileId: users.aoe4worldProfileId })
-      .from(users)
-      .where(eq(users.id, userId))
-      .get();
-    const profileId = profileRow?.profileId ?? null;
-    if (!profileId) {
-      span.end();
-      throw new Error("aoe4world profile not linked");
-    }
-    span.setAttribute("aoe4world.profile_id", profileId);
+  const profileRow = db()
+    .select({ profileId: users.aoe4worldProfileId })
+    .from(users)
+    .where(eq(users.id, userId))
+    .get();
+  const profileId = profileRow?.profileId ?? null;
+  if (!profileId) {
+    throw new Error("aoe4world profile not linked");
+  }
 
-    const startedTs = Math.floor(Date.now() / 1000);
-    upsertSyncState(userId, { lastPolledAt: startedTs });
-    emitSync({
-      type: "sync.started",
-      user_id: userId,
-      profile_id: profileId,
-      full,
-      ts: startedTs,
-    });
-    log(opts.reqId, `sync.start user=${userId} profile=${profileId} full=${full}`);
+  const startedTs = Math.floor(Date.now() / 1000);
+  upsertSyncState(userId, { lastPolledAt: startedTs });
+  emitSync({
+    type: "sync.started",
+    user_id: userId,
+    profile_id: profileId,
+    full,
+    ts: startedTs,
+  });
+  log(opts.reqId, `sync.start user=${userId} profile=${profileId} full=${full}`);
 
-    try {
-      const state = readSyncState(userId);
-      const since = full ? undefined : sinceFromState(state);
+  try {
+    const state = readSyncState(userId);
+    const since = full ? undefined : sinceFromState(state);
 
-      let page = 1;
-      let importedThisRun = 0;
-      let highestSeenGameId = state.lastSeenGameId ?? 0;
-      let shouldStop = false;
-      let totalGamesSeen = 0;
+    let page = 1;
+    let importedThisRun = 0;
+    let highestSeenGameId = state.lastSeenGameId ?? 0;
+    let shouldStop = false;
 
-      while (!shouldStop) {
-        const res = await getGamesPage(profileId, { since, page, limit: 50 });
-        if (!res.games || res.games.length === 0) break;
-        const pageStart = performance.now();
-        for (const raw of res.games) {
-          const wasNew = ingestGame(userId, profileId, raw);
-          if (wasNew) importedThisRun += 1;
-          if (raw.game_id > highestSeenGameId) highestSeenGameId = raw.game_id;
-          if (
-            !full &&
-            state.lastSeenGameId !== null &&
-            raw.game_id <= state.lastSeenGameId
-          ) {
-            shouldStop = true;
-          }
+    while (!shouldStop) {
+      const res = await getGamesPage(profileId, { since, page, limit: 50 });
+      if (!res.games || res.games.length === 0) break;
+      const pageStart = performance.now();
+      for (const raw of res.games) {
+        const wasNew = ingestGame(userId, profileId, raw);
+        if (wasNew) importedThisRun += 1;
+        if (raw.game_id > highestSeenGameId) highestSeenGameId = raw.game_id;
+        if (
+          !full &&
+          state.lastSeenGameId !== null &&
+          raw.game_id <= state.lastSeenGameId
+        ) {
+          shouldStop = true;
         }
-        const pageMs = performance.now() - pageStart;
-        totalGamesSeen += res.games.length;
-        emitSync({
-          type: "sync.page",
-          user_id: userId,
-          page,
-          games_in_page: res.games.length,
-          imported_so_far: importedThisRun,
-          ts: Math.floor(Date.now() / 1000),
-        });
-        log(
-          opts.reqId,
-          `sync.page user=${userId} page=${page} games=${res.games.length} imported_so_far=${importedThisRun} ingest_ms=${pageMs.toFixed(0)}`,
-        );
-        if (res.games.length < 50) break;
-        page += 1;
-        if (page > 200) break; // safety
       }
-
-      upsertSyncState(userId, {
-        lastSuccessAt: Math.floor(Date.now() / 1000),
-        lastError: null,
-        lastSeenGameId: highestSeenGameId || null,
-      });
-      span.setAttribute("sync.imported", importedThisRun);
-      span.setAttribute("sync.pages", page);
-      span.setAttribute("sync.games_seen", totalGamesSeen);
-      const durationMs = performance.now() - startWallMs;
+      const pageMs = performance.now() - pageStart;
       emitSync({
-        type: "sync.completed",
+        type: "sync.page",
         user_id: userId,
-        imported: importedThisRun,
-        last_seen_game_id: highestSeenGameId || null,
-        duration_ms: Math.round(durationMs),
+        page,
+        games_in_page: res.games.length,
+        imported_so_far: importedThisRun,
         ts: Math.floor(Date.now() / 1000),
       });
       log(
         opts.reqId,
-        `sync.done user=${userId} imported=${importedThisRun} pages=${page} duration_ms=${durationMs.toFixed(0)}`,
+        `sync.page user=${userId} page=${page} games=${res.games.length} imported_so_far=${importedThisRun} ingest_ms=${pageMs.toFixed(0)}`,
       );
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      upsertSyncState(userId, { lastError: msg.slice(0, 1000) });
-      span.recordException(e as Error);
-      emitSync({
-        type: "sync.error",
-        user_id: userId,
-        message: msg,
-        ts: Math.floor(Date.now() / 1000),
-      });
-      log(opts.reqId, `sync.error user=${userId} msg=${msg}`);
-      throw e;
-    } finally {
-      span.end();
+      if (res.games.length < 50) break;
+      page += 1;
+      if (page > 200) break; // safety
     }
-  });
-}
 
-function log(reqId: string | undefined, msg: string): void {
-  const tag = reqId ? `[req ${reqId}] ` : "";
-  // eslint-disable-next-line no-console
-  console.log(`${tag}${msg}`);
+    upsertSyncState(userId, {
+      lastSuccessAt: Math.floor(Date.now() / 1000),
+      lastError: null,
+      lastSeenGameId: highestSeenGameId || null,
+    });
+    const durationMs = performance.now() - startWallMs;
+    emitSync({
+      type: "sync.completed",
+      user_id: userId,
+      imported: importedThisRun,
+      last_seen_game_id: highestSeenGameId || null,
+      duration_ms: Math.round(durationMs),
+      ts: Math.floor(Date.now() / 1000),
+    });
+    log(
+      opts.reqId,
+      `sync.done user=${userId} imported=${importedThisRun} pages=${page} duration_ms=${durationMs.toFixed(0)}`,
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    upsertSyncState(userId, { lastError: msg.slice(0, 1000) });
+    emitSync({
+      type: "sync.error",
+      user_id: userId,
+      message: msg,
+      ts: Math.floor(Date.now() / 1000),
+    });
+    log(opts.reqId, `sync.error user=${userId} msg=${msg}`);
+    throw e;
+  }
 }
 
 export async function pollLastAndSyncIfNew(userId: number): Promise<boolean> {
@@ -420,34 +399,23 @@ export async function linkProfileAndBackfill(
   profileId: number,
   opts: SyncOpts = {},
 ): Promise<void> {
-  return tracer.startActiveSpan("link.profile_and_backfill", async (span) => {
-    span.setAttribute("user.id", userId);
-    span.setAttribute("aoe4world.profile_id", profileId);
-    if (opts.reqId) span.setAttribute("req.id", opts.reqId);
-    try {
-      // Verify the profile exists upstream.
-      const player = await getPlayer(profileId);
-      span.setAttribute("aoe4world.display_name", player.name);
-      log(opts.reqId, `link.player_fetched profile_id=${profileId} name=${player.name}`);
-      db()
-        .update(users)
-        .set({
-          aoe4worldProfileId: profileId,
-          displayName: player.name,
-          updatedAt: sql`(unixepoch())`,
-        })
-        .where(eq(users.id, userId))
-        .run();
-      emitSync({
-        type: "link.player_fetched",
-        user_id: userId,
-        profile_id: profileId,
-        display_name: player.name,
-        ts: Math.floor(Date.now() / 1000),
-      });
-      await runSync(userId, true, opts);
-    } finally {
-      span.end();
-    }
+  const player = await getPlayer(profileId);
+  log(opts.reqId, `link.player_fetched profile_id=${profileId} name=${player.name}`);
+  db()
+    .update(users)
+    .set({
+      aoe4worldProfileId: profileId,
+      displayName: player.name,
+      updatedAt: sql`(unixepoch())`,
+    })
+    .where(eq(users.id, userId))
+    .run();
+  emitSync({
+    type: "link.player_fetched",
+    user_id: userId,
+    profile_id: profileId,
+    display_name: player.name,
+    ts: Math.floor(Date.now() / 1000),
   });
+  await runSync(userId, true, opts);
 }

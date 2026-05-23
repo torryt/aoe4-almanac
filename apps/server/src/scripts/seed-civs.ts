@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
+import { VARIANT_PARENTS } from "@aoe4-portal/shared";
 import { db, sqlite } from "../db/client.ts";
-import { civilizations, users } from "../db/schema.ts";
+import { civilizations, civSlugAliases, users } from "../db/schema.ts";
 
 const CIVS_INDEX_URL =
   "https://raw.githubusercontent.com/aoe4world/data/main/civilizations/civs-index.json";
@@ -13,21 +14,6 @@ type RawCiv = {
   attribName?: string;
   expansion?: string[];
   [k: string]: unknown;
-};
-
-// Variant -> parent slug. Curated; updates needed when new variants ship.
-const VARIANT_PARENTS: Record<string, string> = {
-  ayyubids: "abbasid",
-  goldenhorde: "mongols",
-  jeannedarc: "french",
-  jindynasty: "chinese",
-  lancaster: "english",
-  macedonian: "byzantines",
-  orderofthedragon: "hre",
-  sengoku: "japanese",
-  templar: "french",
-  tughlaq: "delhi",
-  zhuxi: "chinese",
 };
 
 function pickStr(v: unknown): string | undefined {
@@ -66,10 +52,14 @@ async function main(): Promise<void> {
 
   let inserted = 0;
   for (const c of raw) {
-    const slug = pickStr(c.slug) ?? pickStr(c.id);
+    // Canonical slug is the long-form `id` (e.g. "knights_templar").
+    // The short `slug` (e.g. "templar") and the abbreviation (e.g. "kt")
+    // are registered as aliases so aoe4world payloads using them normalize
+    // to the canonical form.
+    const slug = pickStr(c.id) ?? pickStr(c.slug);
     const name = pickStr(c.name) ?? slug;
     if (!slug || !name) {
-      console.warn("Skipping civ without slug/name:", c);
+      console.warn("Skipping civ without id/name:", c);
       continue;
     }
     const parentSlug = VARIANT_PARENTS[slug] ?? null;
@@ -99,6 +89,22 @@ async function main(): Promise<void> {
       })
       .run();
     inserted += 1;
+
+    const aliases = new Set<string>();
+    const shortSlug = pickStr(c.slug);
+    if (shortSlug && shortSlug !== slug) aliases.add(shortSlug);
+    const abbr = pickStr(c.abbr);
+    if (abbr && abbr !== slug) aliases.add(abbr);
+    for (const alias of aliases) {
+      db()
+        .insert(civSlugAliases)
+        .values({ alias, civSlug: slug })
+        .onConflictDoUpdate({
+          target: civSlugAliases.alias,
+          set: { civSlug: slug },
+        })
+        .run();
+    }
   }
 
   // Drop count

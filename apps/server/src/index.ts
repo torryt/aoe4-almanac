@@ -1,5 +1,3 @@
-// IMPORTANT: telemetry must be imported before anything that creates spans.
-import "./telemetry.ts";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
@@ -44,4 +42,5 @@ serve(
     // eslint-disable-next-line no-console
     console.log(`aoe4-portal server listening on http://${e.HOST}:${info.port}`);
   },
+
 );

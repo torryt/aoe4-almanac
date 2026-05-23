@@ -1,15 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import { api, qk, type Civ, type GameDto } from "../lib/api.ts";
 import {
-  api,
-  qk,
-  type Civ,
-  type GameDto,
-} from "../lib/api.ts";
-import { Card } from "../components/Card.tsx";
-import { CivBadge } from "../components/CivBadge.tsx";
-import { MarkdownEditor } from "../components/MarkdownEditor.tsx";
+  Button,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Textarea,
+} from "../components/ui/index.ts";
+import { prettyCiv } from "./index.tsx";
 
 export const Route = createFileRoute("/notes/civs/$slug")({
   component: CivNoteEditor,
@@ -26,7 +28,9 @@ function CivNoteEditor() {
   const noteQ = useQuery({
     queryKey: qk.civNote(slug),
     queryFn: () =>
-      api.get<{ body_md: string; updated_at: number | null }>(`/notes/civs/${slug}`),
+      api.get<{ body_md: string; updated_at: number | null }>(
+        `/notes/civs/${slug}`,
+      ),
   });
   const statsQ = useQuery({
     queryKey: qk.statsByCiv(slug),
@@ -43,8 +47,7 @@ function CivNoteEditor() {
   });
   const recentQ = useQuery({
     queryKey: qk.games({ civ: slug, limit: 5 }),
-    queryFn: () =>
-      api.get<{ games: GameDto[] }>(`/games?civ=${slug}&limit=5`),
+    queryFn: () => api.get<{ games: GameDto[] }>(`/games?civ=${slug}&limit=5`),
   });
 
   const [draft, setDraft] = useState("");
@@ -79,139 +82,231 @@ function CivNoteEditor() {
     },
     { games: 0, wins: 0, losses: 0 },
   );
+  const dirty = draft !== (noteQ.data?.body_md ?? "");
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-2 space-y-4">
-        <div className="flex items-center gap-2">
-          <Link to="/notes/civs" className="text-xs text-stone-500 hover:text-stone-900">
-            ← All civ notes
-          </Link>
-        </div>
-        <div className="flex items-baseline gap-2">
-          <h1 className="text-xl font-semibold">{civName}</h1>
-          {civ?.is_variant && (
-            <span className="text-xs text-amber-700">
-              variant{parent && (
-                <>
-                  {" of "}
-                  <Link
-                    to="/notes/civs/$slug"
-                    params={{ slug: parent.slug }}
-                    className="underline"
-                  >
-                    {parent.name}
-                  </Link>
-                </>
-              )}
-            </span>
-          )}
-        </div>
-        <Card title="General notes">
-          <MarkdownEditor
-            value={draft}
-            onChange={setDraft}
-            onSave={() => save.mutate(draft)}
-            saving={save.isPending}
-            placeholder={`Write your ${civName} general strategy, build orders, key timings…`}
-            minHeight={420}
-          />
-        </Card>
+    <section className="spread px-10 pt-16 pb-20">
+      <Link to="/notes/civs" className="nav-link inline-block mb-4">
+        ← The Roster
+      </Link>
+      <div className="flex items-center gap-4 pb-6">
+        <span className="eyebrow">The Standing Note</span>
+        <hr className="rule-faint flex-1" />
+        <span className="eyebrow">{civ?.is_variant ? "Variant" : "Civilisation"}</span>
       </div>
 
-      <div className="space-y-4">
-        <Card title={`My ${civName} record`}>
-          {totals.games === 0 ? (
-            <div className="text-xs text-stone-500">No games yet.</div>
-          ) : (
-            <div className="space-y-2 text-sm">
-              <div>
-                <strong className="text-2xl tabular-nums">
-                  {totals.wins}-{totals.losses}
-                </strong>{" "}
-                <span className="text-xs text-stone-500">
-                  ({((totals.wins / totals.games) * 100).toFixed(1)}%)
-                </span>
+      <div className="grid grid-cols-12 gap-10">
+        <article className="col-span-8">
+          <p className="kicker pb-2">A general study.</p>
+          <h2
+            className="font-display text-[#1c1c1a]"
+            style={{
+              fontSize: 80,
+              lineHeight: 0.92,
+              fontWeight: 700,
+              letterSpacing: "-0.025em",
+            }}
+          >
+            <span className="text-[#9b2b2b]">{civName}</span>.
+          </h2>
+
+          {civ?.is_variant && parent && (
+            <p
+              className="font-display italic pt-4 text-[#5b574e]"
+              style={{ fontSize: 18 }}
+            >
+              A variant of{" "}
+              <Link
+                to="/notes/civs/$slug"
+                params={{ slug: parent.slug }}
+                className="not-italic text-[#1c1c1a] hover:underline"
+              >
+                {parent.name}
+              </Link>
+              .
+            </p>
+          )}
+
+          <hr className="rule mt-8" />
+
+          <Tabs defaultValue="write" className="pt-8">
+            <div className="flex items-center justify-between pb-3">
+              <div className="eyebrow-tight">The note</div>
+              <TabsList>
+                <TabsTrigger value="write">Write</TabsTrigger>
+                <TabsTrigger value="read">Preview</TabsTrigger>
+              </TabsList>
+            </div>
+            <TabsContent value="write">
+              <Textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={14}
+                className="essay dropcap"
+                placeholder={`Opening preferences, economic rhythm, signature units for ${civName}…`}
+              />
+            </TabsContent>
+            <TabsContent value="read">
+              <div className="prose-note">
+                {draft.trim() ? (
+                  <ReactMarkdown>{draft}</ReactMarkdown>
+                ) : (
+                  <span className="kicker">Nothing written yet.</span>
+                )}
               </div>
-              <div className="space-y-1 text-xs">
+            </TabsContent>
+          </Tabs>
+
+          <hr className="rule-faint mt-6" />
+          <div className="flex items-center justify-between pt-3">
+            <span className="kicker" style={{ fontSize: 13 }}>
+              {noteQ.data?.updated_at
+                ? `Last revised ${relative(noteQ.data.updated_at)}`
+                : "Unwritten"}
+            </span>
+            <Button
+              variant="signet"
+              size="sm"
+              onClick={() => save.mutate(draft)}
+              disabled={!dirty || save.isPending}
+            >
+              {save.isPending ? "Saving…" : dirty ? "Save Note" : "Saved"}
+            </Button>
+          </div>
+        </article>
+
+        <aside className="col-span-4 border-l border-[rgba(28,28,26,0.15)] pl-8">
+          <div className="eyebrow-tight pb-4">My {civName} record</div>
+          {totals.games === 0 ? (
+            <p className="kicker">No games yet.</p>
+          ) : (
+            <>
+              <div
+                className="font-display"
+                style={{ fontSize: 56, lineHeight: 1, fontWeight: 700 }}
+              >
+                {totals.wins}
+                <span className="text-[#5b574e] italic font-normal">–</span>
+                {totals.losses}
+              </div>
+              <p className="kicker pt-2">
+                {((totals.wins / totals.games) * 100).toFixed(1)}% across{" "}
+                {totals.games} game{totals.games === 1 ? "" : "s"}
+              </p>
+
+              <hr className="rule-faint my-5" />
+
+              <div className="eyebrow-tight pb-3">Top opponents</div>
+              <div className="space-y-2">
                 {(statsQ.data?.rows ?? []).slice(0, 8).map((r) => (
                   <Link
                     key={r.opp_civ_slug}
                     to="/notes/matchups/$myCiv/$oppCiv"
                     params={{ myCiv: slug, oppCiv: r.opp_civ_slug }}
-                    className="flex items-center gap-2 hover:underline"
+                    className="flex items-baseline justify-between hover:underline font-display"
+                    style={{ fontSize: 15 }}
                   >
-                    <span className="w-24 truncate">vs {r.opp_civ_slug}</span>
-                    <span className="tabular-nums">
-                      {r.wins}-{r.losses}
+                    <span className="italic text-[#5b574e]">
+                      vs {prettyCiv(r.opp_civ_slug)}
                     </span>
-                    {r.win_rate !== null && (
-                      <span
-                        className={`tabular-nums ${
-                          r.win_rate >= 0.5 ? "text-emerald-700" : "text-rose-700"
-                        }`}
-                      >
-                        {(r.win_rate * 100).toFixed(0)}%
-                      </span>
-                    )}
+                    <span>
+                      {r.wins}–{r.losses}
+                      {r.win_rate !== null && (
+                        <span
+                          className={`ml-2 italic ${r.win_rate >= 0.5 ? "" : "text-[#9b2b2b]"}`}
+                        >
+                          {(r.win_rate * 100).toFixed(0)}%
+                        </span>
+                      )}
+                    </span>
                   </Link>
                 ))}
               </div>
-            </div>
+            </>
           )}
-        </Card>
 
-        {(variants.length > 0 || parent) && (
-          <Card title="Related civs">
-            <ul className="space-y-1 text-sm">
-              {parent && (
-                <li>
-                  <Link
-                    to="/notes/civs/$slug"
-                    params={{ slug: parent.slug }}
-                    className="text-stone-700 hover:underline"
-                  >
-                    Parent: {parent.name}
-                  </Link>
-                </li>
-              )}
-              {variants.map((v) => (
-                <li key={v.slug}>
-                  <Link
-                    to="/notes/civs/$slug"
-                    params={{ slug: v.slug }}
-                    className="text-stone-700 hover:underline"
-                  >
-                    Variant: {v.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
+          {(variants.length > 0 || parent) && (
+            <>
+              <hr className="rule-faint my-5" />
+              <div className="eyebrow-tight pb-3">Related</div>
+              <ul className="space-y-1 font-display" style={{ fontSize: 15 }}>
+                {parent && (
+                  <li>
+                    <Link
+                      to="/notes/civs/$slug"
+                      params={{ slug: parent.slug }}
+                      className="italic text-[#5b574e] hover:underline"
+                    >
+                      Parent: {parent.name}
+                    </Link>
+                  </li>
+                )}
+                {variants.map((v) => (
+                  <li key={v.slug}>
+                    <Link
+                      to="/notes/civs/$slug"
+                      params={{ slug: v.slug }}
+                      className="italic text-[#5b574e] hover:underline"
+                    >
+                      Variant: {v.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
 
-        <Card title="Recent games">
+          <hr className="rule-faint my-5" />
+
+          <div className="eyebrow-tight pb-3">Recent games</div>
           {(recentQ.data?.games ?? []).length === 0 ? (
-            <div className="text-xs text-stone-500">No games yet.</div>
+            <p className="kicker">No games yet.</p>
           ) : (
-            <ul className="space-y-1 text-xs">
-              {recentQ.data?.games.map((g) => (
-                <li key={g.id}>
-                  <Link
-                    to="/games/$gameId"
-                    params={{ gameId: String(g.id) }}
-                    className="hover:underline"
-                  >
-                    {g.my_result === "win" ? "W" : g.my_result === "loss" ? "L" : "?"}{" "}
-                    vs{" "}
-                    {g.participants.find((p) => !p.is_self)?.civ_slug ?? "—"}
-                  </Link>
-                </li>
-              ))}
+            <ul className="space-y-1 font-display" style={{ fontSize: 15 }}>
+              {recentQ.data?.games.map((g) => {
+                const opp = g.participants.find((p) => !p.is_self);
+                return (
+                  <li key={g.id}>
+                    <Link
+                      to="/games/$gameId"
+                      params={{ gameId: String(g.id) }}
+                      className="hover:underline"
+                    >
+                      <span
+                        className={
+                          g.my_result === "win"
+                            ? "result-W"
+                            : g.my_result === "loss"
+                              ? "result-L"
+                              : ""
+                        }
+                      >
+                        {g.my_result === "win"
+                          ? "W"
+                          : g.my_result === "loss"
+                            ? "L"
+                            : "—"}
+                      </span>{" "}
+                      vs{" "}
+                      <span className="italic">
+                        {opp ? prettyCiv(opp.civ_slug) : "—"}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
-        </Card>
+        </aside>
       </div>
-    </div>
+    </section>
   );
+}
+
+function relative(unix: number): string {
+  const diff = Math.floor(Date.now() / 1000) - unix;
+  if (diff < 60) return `${diff} seconds ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+  return `${Math.floor(diff / 86400)} days ago`;
 }

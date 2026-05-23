@@ -2,9 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { api, qk, type Civ, type GameDto } from "../lib/api.ts";
-import { Card } from "../components/Card.tsx";
-import { CivBadge } from "../components/CivBadge.tsx";
-import { ResultBadge } from "../components/ResultBadge.tsx";
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Label,
+} from "../components/ui/index.ts";
+import { prettyCiv, prettyMap } from "./index.tsx";
 
 const gamesSearchSchema = z.object({
   civ: z.string().optional(),
@@ -19,8 +26,16 @@ export const Route = createFileRoute("/games/")({
   component: GamesList,
 });
 
-function fmtDate(unix: number): string {
-  return new Date(unix * 1000).toLocaleString();
+function fmtDay(unix: number): string {
+  const d = new Date(unix * 1000);
+  return `${d.getDate()} ${d.toLocaleString(undefined, { month: "short" })}`;
+}
+
+function fmtDuration(s: number | null | undefined): string {
+  if (!s) return "—";
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
 function GamesList() {
@@ -55,150 +70,222 @@ function GamesList() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Games</h1>
-        <Link
-          to="/games/new"
-          className="rounded bg-stone-900 px-3 py-1.5 text-xs font-medium text-white"
-        >
-          + Manual entry
-        </Link>
-      </div>
+    <section className="spread px-10 pt-16 pb-20">
+      <div className="grid grid-cols-12 gap-10">
+        <div className="col-span-3">
+          <div className="eyebrow-tight pb-4">The Ledger</div>
+          <h2
+            className="font-display text-[#1c1c1a]"
+            style={{
+              fontSize: 56,
+              lineHeight: 0.95,
+              fontWeight: 700,
+              letterSpacing: "-0.015em",
+            }}
+          >
+            The Bound
+            <br />
+            Ledger.
+          </h2>
+          <p className="kicker pt-4" style={{ fontSize: 14 }}>
+            Every recorded campaign, sortable by hand and machine alike.
+          </p>
+          <hr className="rule-gold my-6" />
 
-      <Card title="Filters">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <FilterSelect
-            label="My civ"
-            value={search.civ}
-            onChange={(v) => update("civ", v)}
-            options={civs}
-          />
-          <FilterSelect
-            label="Opp civ"
-            value={search.opp_civ}
-            onChange={(v) => update("opp_civ", v)}
-            options={civs}
-          />
-          <div>
-            <label className="block text-xs font-medium text-stone-500">
-              Result
-            </label>
-            <select
-              value={search.result ?? ""}
-              onChange={(e) => update("result", e.target.value || undefined)}
-              className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
-            >
-              <option value="">Any</option>
-              <option value="win">Win</option>
-              <option value="loss">Loss</option>
-              <option value="draw">Draw</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-stone-500">Kind</label>
-            <select
-              value={search.kind ?? ""}
-              onChange={(e) => update("kind", e.target.value || undefined)}
-              className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
-            >
-              <option value="">Any</option>
-              <option value="rm_1v1">Ranked 1v1</option>
-              <option value="rm_2v2">Ranked 2v2</option>
-              <option value="rm_3v3">Ranked 3v3</option>
-              <option value="rm_4v4">Ranked 4v4</option>
-              <option value="qm_1v1">Quick 1v1</option>
-              <option value="custom">Custom</option>
-              <option value="manual">Manual</option>
-            </select>
+          <Link to="/games/new">
+            <Button variant="signet" size="md">
+              + Log Manual Entry
+            </Button>
+          </Link>
+
+          <div className="mt-8 space-y-5">
+            <div>
+              <Label>My Civilisation</Label>
+              <Select
+                value={search.civ ?? "__all"}
+                onValueChange={(v) => update("civ", v === "__all" ? undefined : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Any" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Any</SelectItem>
+                  {civs.map((c) => (
+                    <SelectItem key={c.slug} value={c.slug}>
+                      {c.name}
+                      {c.is_variant ? " (variant)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Opponent</Label>
+              <Select
+                value={search.opp_civ ?? "__all"}
+                onValueChange={(v) =>
+                  update("opp_civ", v === "__all" ? undefined : v)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Any" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Any</SelectItem>
+                  {civs.map((c) => (
+                    <SelectItem key={c.slug} value={c.slug}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Result</Label>
+              <Select
+                value={search.result ?? "__all"}
+                onValueChange={(v) =>
+                  update("result", v === "__all" ? undefined : v)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Any" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Any</SelectItem>
+                  <SelectItem value="win">Victory</SelectItem>
+                  <SelectItem value="loss">Defeat</SelectItem>
+                  <SelectItem value="draw">Draw</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Kind</Label>
+              <Select
+                value={search.kind ?? "__all"}
+                onValueChange={(v) =>
+                  update("kind", v === "__all" ? undefined : v)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Any" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Any</SelectItem>
+                  <SelectItem value="rm_1v1">Ranked 1v1</SelectItem>
+                  <SelectItem value="rm_2v2">Ranked 2v2</SelectItem>
+                  <SelectItem value="rm_3v3">Ranked 3v3</SelectItem>
+                  <SelectItem value="rm_4v4">Ranked 4v4</SelectItem>
+                  <SelectItem value="qm_1v1">Quick 1v1</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
-      </Card>
 
-      <Card>
-        {games.isLoading ? (
-          <div className="text-sm text-stone-500">Loading…</div>
-        ) : (games.data?.games ?? []).length === 0 ? (
-          <div className="text-sm text-stone-500">No games match these filters.</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="text-xs text-stone-500">
-              <tr>
-                <th className="px-2 py-1 text-left font-medium">Result</th>
-                <th className="px-2 py-1 text-left font-medium">My civ</th>
-                <th className="px-2 py-1 text-left font-medium">Opp</th>
-                <th className="px-2 py-1 text-left font-medium">Map</th>
-                <th className="px-2 py-1 text-left font-medium">Kind</th>
-                <th className="px-2 py-1 text-right font-medium">Δ</th>
-                <th className="px-2 py-1 text-right font-medium">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {games.data?.games.map((g) => {
-                const opp = g.participants.find((p) => !p.is_self);
-                return (
-                  <tr
-                    key={g.id}
-                    className="cursor-pointer border-t border-stone-100 hover:bg-stone-50"
-                    onClick={() =>
-                      void navigate({
-                        to: "/games/$gameId",
-                        params: { gameId: String(g.id) },
-                      })
-                    }
+        <div className="col-span-9">
+          <div
+            className="log-row"
+            style={{
+              borderBottom: "2px solid #1c1c1a",
+              paddingBottom: 8,
+              paddingTop: 0,
+            }}
+          >
+            <div className="eyebrow-tight">Date</div>
+            <div className="eyebrow-tight">Matchup</div>
+            <div className="eyebrow-tight">Map</div>
+            <div className="eyebrow-tight text-right">Duration</div>
+            <div className="eyebrow-tight text-center">Result</div>
+            <div className="eyebrow-tight text-right">Δ MMR</div>
+          </div>
+
+          {games.isLoading ? (
+            <div className="kicker py-6">Loading the ledger…</div>
+          ) : (games.data?.games ?? []).length === 0 ? (
+            <div className="kicker py-6">No games match the present filters.</div>
+          ) : (
+            games.data?.games.map((g) => {
+              const opp = g.participants.find((p) => !p.is_self);
+              return (
+                <Link
+                  key={g.id}
+                  to="/games/$gameId"
+                  params={{ gameId: String(g.id) }}
+                  className="log-row hover:bg-[rgba(28,28,26,0.04)]"
+                >
+                  <div
+                    className="font-display"
+                    style={{ fontSize: 17, fontWeight: 600 }}
                   >
-                    <td className="px-2 py-1.5">
-                      <ResultBadge result={g.my_result} />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <CivBadge slug={g.my_civ_slug} size="xs" />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      {opp ? <CivBadge slug={opp.civ_slug} size="xs" /> : "—"}
-                    </td>
-                    <td className="px-2 py-1.5 text-stone-600">{g.map_slug ?? "—"}</td>
-                    <td className="px-2 py-1.5 text-xs text-stone-500">{g.kind}</td>
-                    <td className="px-2 py-1.5 text-right tabular-nums">
-                      {g.my_rating_diff !== null
-                        ? `${g.my_rating_diff > 0 ? "+" : ""}${g.my_rating_diff}`
-                        : "—"}
-                    </td>
-                    <td className="px-2 py-1.5 text-right text-xs text-stone-500 tabular-nums">
-                      {fmtDate(g.started_at)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </Card>
-    </div>
-  );
-}
+                    {fmtDay(g.started_at)}
+                  </div>
+                  <div className="font-display" style={{ fontSize: 17 }}>
+                    <span className="text-[#9b2b2b]">
+                      {prettyCiv(g.my_civ_slug)}
+                    </span>{" "}
+                    <span className="text-[#5b574e] italic">vs</span>{" "}
+                    {opp ? (
+                      prettyCiv(opp.civ_slug)
+                    ) : (
+                      <span className="text-[#5b574e] italic">—</span>
+                    )}
+                  </div>
+                  <div className="font-display italic" style={{ fontSize: 16 }}>
+                    {g.map_slug ? prettyMap(g.map_slug) : "—"}
+                  </div>
+                  <div
+                    className="font-display text-right"
+                    style={{ fontSize: 16, fontWeight: 500 }}
+                  >
+                    {fmtDuration(g.duration_seconds)}
+                  </div>
+                  <div
+                    className={`text-center font-display ${
+                      g.my_result === "win"
+                        ? "result-W"
+                        : g.my_result === "loss"
+                          ? "result-L"
+                          : "result-D"
+                    }`}
+                    style={{ fontSize: 17 }}
+                  >
+                    {g.my_result === "win"
+                      ? "W"
+                      : g.my_result === "loss"
+                        ? "L"
+                        : g.my_result === "draw"
+                          ? "D"
+                          : "—"}
+                  </div>
+                  <div
+                    className={`font-display text-right ${g.my_rating_diff !== null && g.my_rating_diff < 0 ? "text-[#9b2b2b]" : ""}`}
+                    style={{ fontSize: 16 }}
+                  >
+                    {g.my_rating_diff === null
+                      ? "—"
+                      : g.my_rating_diff < 0
+                        ? `−${Math.abs(g.my_rating_diff)}`
+                        : `+${g.my_rating_diff}`}
+                  </div>
+                </Link>
+              );
+            })
+          )}
 
-function FilterSelect(props: {
-  label: string;
-  value: string | undefined;
-  onChange: (v: string | undefined) => void;
-  options: Civ[];
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-stone-500">{props.label}</label>
-      <select
-        value={props.value ?? ""}
-        onChange={(e) => props.onChange(e.target.value || undefined)}
-        className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
-      >
-        <option value="">Any</option>
-        {props.options.map((c) => (
-          <option key={c.slug} value={c.slug}>
-            {c.name}
-            {c.is_variant ? " (var)" : ""}
-          </option>
-        ))}
-      </select>
-    </div>
+          <div className="flex items-center justify-between pt-6">
+            <span className="kicker">
+              {games.data?.games.length ?? 0} entries shown.
+            </span>
+            <span className="folio">page 4</span>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

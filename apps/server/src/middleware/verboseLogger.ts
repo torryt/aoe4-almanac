@@ -1,8 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { SpanStatusCode } from "@opentelemetry/api";
 import type { MiddlewareHandler } from "hono";
 import type { AppContext } from "../auth/middleware.ts";
-import { tracer } from "../telemetry.ts";
+import { log, logError } from "../log.ts";
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -16,16 +15,25 @@ function trunc(s: string): string {
   return s.length > TRUNC ? `${s.slice(0, TRUNC)}…(+${s.length - TRUNC})` : s;
 }
 
+function sanitizeReqId(raw: string | undefined): string | null {
+  if (!raw) return null;
+  // Accept short ascii alphanumerics + dashes; cap length.
+  const trimmed = raw.trim().slice(0, 64);
+  return /^[A-Za-z0-9_-]+$/.test(trimmed) ? trimmed : null;
+}
+
 export function verboseLogger(): MiddlewareHandler<AppContext> {
   return async (c, next) => {
-    const reqId = randomUUID().slice(0, 8);
+    const incoming = sanitizeReqId(c.req.header("x-request-id"));
+    const reqId = incoming ?? randomUUID().slice(0, 8);
     c.set("reqId", reqId);
+    c.header("x-request-id", reqId);
+
     const start = performance.now();
     const method = c.req.method;
     const path = c.req.path;
     const qs = c.req.url.includes("?") ? "?" + c.req.url.split("?")[1] : "";
 
-    // Capture body for mutating requests on the API.
     let bodyPreview = "";
     if (path.startsWith("/api/") && method !== "GET" && method !== "HEAD") {
       try {
@@ -36,45 +44,20 @@ export function verboseLogger(): MiddlewareHandler<AppContext> {
       }
     }
 
-    // eslint-disable-next-line no-console
-    console.log(`[req ${reqId}] → ${method} ${path}${qs}${bodyPreview}`);
+    log(reqId, `→ ${method} ${path}${qs}${bodyPreview}`);
 
-    await tracer.startActiveSpan(
-      `${method} ${path}`,
-      {
-        attributes: {
-          "http.request.method": method,
-          "url.path": path,
-          "req.id": reqId,
-        },
-      },
-      async (span) => {
-        try {
-          await next();
-          const ms = performance.now() - start;
-          const status = c.res.status;
-          span.setAttribute("http.response.status_code", status);
-          if (status >= 500) {
-            span.setStatus({ code: SpanStatusCode.ERROR, message: `status ${status}` });
-          }
-          // eslint-disable-next-line no-console
-          console.log(`[req ${reqId}] ← ${status} ${ms.toFixed(1)}ms ${method} ${path}`);
-        } catch (e) {
-          const ms = performance.now() - start;
-          span.recordException(e as Error);
-          span.setStatus({
-            code: SpanStatusCode.ERROR,
-            message: e instanceof Error ? e.message : String(e),
-          });
-          // eslint-disable-next-line no-console
-          console.log(
-            `[req ${reqId}] ✗ ${ms.toFixed(1)}ms ${method} ${path}  err=${e instanceof Error ? e.message : String(e)}`,
-          );
-          throw e;
-        } finally {
-          span.end();
-        }
-      },
-    );
+    try {
+      await next();
+      const ms = performance.now() - start;
+      const status = c.res.status;
+      log(reqId, `← ${status} ${ms.toFixed(1)}ms ${method} ${path}`);
+    } catch (e) {
+      const ms = performance.now() - start;
+      logError(
+        reqId,
+        `✗ ${ms.toFixed(1)}ms ${method} ${path} err=${e instanceof Error ? e.message : String(e)}`,
+      );
+      throw e;
+    }
   };
 }

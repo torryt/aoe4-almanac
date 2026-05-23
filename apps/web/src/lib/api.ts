@@ -4,22 +4,38 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     public body: unknown,
+    public reqId: string | null,
   ) {
-    super(`API ${status}: ${typeof body === "string" ? body : JSON.stringify(body)}`);
+    const bodyStr = typeof body === "string" ? body : JSON.stringify(body);
+    const idStr = reqId ? ` [reqId=${reqId}]` : "";
+    super(`API ${status}${idStr}: ${bodyStr}`);
   }
+}
+
+function newReqId(): string {
+  // 8-char id; matches server-side default length.
+  const uuid =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(16).slice(2);
+  return uuid.replace(/-/g, "").slice(0, 8);
 }
 
 async function request<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
+  const reqId = newReqId();
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
       "content-type": "application/json",
+      "x-request-id": reqId,
       ...(init?.headers ?? {}),
     },
   });
+  // Server echoes x-request-id (and may override with its own if FE id was rejected).
+  const serverReqId = res.headers.get("x-request-id") ?? reqId;
   if (!res.ok) {
     let body: unknown = undefined;
     try {
@@ -27,7 +43,7 @@ async function request<T>(
     } catch {
       body = await res.text();
     }
-    throw new ApiError(res.status, body);
+    throw new ApiError(res.status, body, serverReqId);
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;

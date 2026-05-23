@@ -1,8 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { KNIGHTS_TEMPLAR } from "@aoe4-portal/shared";
 import { api, qk, type Civ } from "../lib/api.ts";
-import { Card } from "../components/Card.tsx";
+import {
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+} from "../components/ui/index.ts";
 
 export const Route = createFileRoute("/games/new")({
   component: GameNew,
@@ -20,7 +31,7 @@ function GameNew() {
   const [startedAtLocal, setStartedAtLocal] = useState<string>(
     new Date().toISOString().slice(0, 16),
   );
-  const [myCiv, setMyCiv] = useState("templar");
+  const [myCiv, setMyCiv] = useState(KNIGHTS_TEMPLAR);
   const [oppCiv, setOppCiv] = useState("");
   const [oppName, setOppName] = useState("");
   const [result, setResult] = useState<"win" | "loss" | "draw">("win");
@@ -56,144 +67,192 @@ function GameNew() {
   }
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="mb-4 text-xl font-semibold">Log a manual game</h1>
-      <Card>
-        <form onSubmit={onSubmit} className="space-y-4 text-sm">
-          <Row label="Started at">
-            <input
-              type="datetime-local"
-              required
-              value={startedAtLocal}
-              onChange={(e) => setStartedAtLocal(e.target.value)}
-              className="rounded border border-stone-300 px-2 py-1"
-            />
-          </Row>
-          <Row label="My civ">
-            <select
-              value={myCiv}
-              onChange={(e) => setMyCiv(e.target.value)}
-              className="w-full rounded border border-stone-300 px-2 py-1"
-            >
-              {civs.map((c) => (
-                <option key={c.slug} value={c.slug}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </Row>
-          <Row label="Result">
-            <select
-              value={result}
-              onChange={(e) =>
-                setResult(e.target.value as "win" | "loss" | "draw")
-              }
-              className="rounded border border-stone-300 px-2 py-1"
-            >
-              <option value="win">Win</option>
-              <option value="loss">Loss</option>
-              <option value="draw">Draw</option>
-            </select>
-          </Row>
-          <Row label="Opponent civ">
-            <select
-              value={oppCiv}
-              onChange={(e) => setOppCiv(e.target.value)}
-              className="w-full rounded border border-stone-300 px-2 py-1"
-            >
-              <option value="">(none)</option>
-              {civs.map((c) => (
-                <option key={c.slug} value={c.slug}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </Row>
-          <Row label="Opponent name (optional)">
-            <input
-              type="text"
-              value={oppName}
-              onChange={(e) => setOppName(e.target.value)}
-              className="w-full rounded border border-stone-300 px-2 py-1"
-            />
-          </Row>
-          <Row label="Map (optional)">
-            <input
-              type="text"
-              value={map}
-              onChange={(e) => setMap(e.target.value)}
-              placeholder="e.g. dry_arabia"
-              className="w-full rounded border border-stone-300 px-2 py-1"
-            />
-          </Row>
-          <Row label="Kind">
-            <select
-              value={kind}
-              onChange={(e) => setKind(e.target.value)}
-              className="rounded border border-stone-300 px-2 py-1"
-            >
-              <option value="custom">Custom</option>
-              <option value="rm_1v1">Ranked 1v1</option>
-              <option value="rm_2v2">Ranked 2v2</option>
-              <option value="qm_1v1">Quick 1v1</option>
-              <option value="manual">Manual</option>
-            </select>
-          </Row>
-          <Row label="Duration (minutes, optional)">
-            <input
-              type="number"
-              min={0}
-              value={durationMin}
-              onChange={(e) => setDurationMin(e.target.value)}
-              className="w-32 rounded border border-stone-300 px-2 py-1"
-            />
-          </Row>
-          <Row label="Notes (optional)">
-            <textarea
+    <section className="spread px-10 pt-16 pb-20">
+      <Link to="/games" className="nav-link inline-block mb-4">
+        ← The Ledger
+      </Link>
+      <div className="flex items-center gap-4 pb-6">
+        <span className="eyebrow">A Manual Entry</span>
+        <hr className="rule-faint flex-1" />
+        <span className="eyebrow">By the proprietor's hand</span>
+      </div>
+
+      <div className="grid grid-cols-12 gap-10">
+        <div className="col-span-4">
+          <p className="kicker pb-2">A bound deposition.</p>
+          <h2
+            className="font-display text-[#1c1c1a]"
+            style={{
+              fontSize: 60,
+              lineHeight: 0.95,
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Log a
+            <br />
+            campaign.
+          </h2>
+          <hr className="rule-gold my-5" />
+          <p className="marginalia">
+            For matches that lie outside the aoe4world ledger — customs,
+            tournaments, friendly bouts — record the essentials here. The
+            entry will appear alongside imported games in the Ledger and in
+            matchup statistics.
+          </p>
+        </div>
+
+        <form onSubmit={onSubmit} className="col-span-8 space-y-6">
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <Label>Started at</Label>
+              <Input
+                type="datetime-local"
+                required
+                value={startedAtLocal}
+                onChange={(e) => setStartedAtLocal(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Result</Label>
+              <Select
+                value={result}
+                onValueChange={(v) =>
+                  setResult(v as "win" | "loss" | "draw")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="win">Victory</SelectItem>
+                  <SelectItem value="loss">Defeat</SelectItem>
+                  <SelectItem value="draw">Draw</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <Label>My civilisation</Label>
+              <Select value={myCiv} onValueChange={setMyCiv}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {civs.map((c) => (
+                    <SelectItem key={c.slug} value={c.slug}>
+                      {c.name}
+                      {c.is_variant ? " (variant)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Opponent civilisation</Label>
+              <Select
+                value={oppCiv || "__none"}
+                onValueChange={(v) => setOppCiv(v === "__none" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="(none)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">(none)</SelectItem>
+                  {civs.map((c) => (
+                    <SelectItem key={c.slug} value={c.slug}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <Label>Opponent name</Label>
+              <Input
+                type="text"
+                value={oppName}
+                onChange={(e) => setOppName(e.target.value)}
+                placeholder="optional"
+              />
+            </div>
+            <div>
+              <Label>Map</Label>
+              <Input
+                type="text"
+                value={map}
+                onChange={(e) => setMap(e.target.value)}
+                placeholder="e.g. dry_arabia"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <Label>Kind</Label>
+              <Select value={kind} onValueChange={setKind}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="rm_1v1">Ranked 1v1</SelectItem>
+                  <SelectItem value="rm_2v2">Ranked 2v2</SelectItem>
+                  <SelectItem value="qm_1v1">Quick 1v1</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Duration (minutes)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={durationMin}
+                onChange={(e) => setDurationMin(e.target.value)}
+                placeholder="optional"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label>Notes on the match</Label>
+            <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="block w-full resize-y rounded border border-stone-300 px-2 py-1 font-mono text-xs"
-              rows={4}
+              rows={6}
+              className="essay"
+              placeholder="Optional notes on the campaign…"
             />
-          </Row>
+          </div>
+
           {submit.isError && (
-            <div className="text-xs text-rose-700">
+            <p className="kicker text-[#9b2b2b]">
               {String((submit.error as Error)?.message ?? submit.error)}
-            </div>
+            </p>
           )}
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={submit.isPending}
-              className="rounded bg-stone-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-            >
-              {submit.isPending ? "Saving…" : "Save"}
-            </button>
-            <button
+
+          <hr className="rule-faint" />
+
+          <div className="flex gap-3">
+            <Button variant="signet" disabled={submit.isPending} type="submit">
+              {submit.isPending ? "Saving…" : "Bind Entry"}
+            </Button>
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => void nav({ to: "/games" })}
-              className="rounded border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
-      </Card>
-    </div>
-  );
-}
-
-function Row({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-stone-500">{label}</span>
-      {children}
-    </label>
+      </div>
+    </section>
   );
 }
