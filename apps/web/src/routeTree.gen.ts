@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OpponentsIndexRouteImport } from './routes/opponents.index'
 import { Route as GamesIndexRouteImport } from './routes/games.index'
+import { Route as OpponentsKeyRouteImport } from './routes/opponents.$key'
 import { Route as GamesNewRouteImport } from './routes/games.new'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
 import { Route as NotesMatchupsIndexRouteImport } from './routes/notes.matchups.index'
@@ -31,9 +33,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OpponentsIndexRoute = OpponentsIndexRouteImport.update({
+  id: '/opponents/',
+  path: '/opponents/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GamesIndexRoute = GamesIndexRouteImport.update({
   id: '/games/',
   path: '/games/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpponentsKeyRoute = OpponentsKeyRouteImport.update({
+  id: '/opponents/$key',
+  path: '/opponents/$key',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesNewRoute = GamesNewRouteImport.update({
@@ -83,7 +95,9 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/games/new': typeof GamesNewRoute
+  '/opponents/$key': typeof OpponentsKeyRoute
   '/games/': typeof GamesIndexRoute
+  '/opponents/': typeof OpponentsIndexRoute
   '/notes/civs/$slug': typeof NotesCivsSlugRoute
   '/notes/maps/$slug': typeof NotesMapsSlugRoute
   '/notes/civs/': typeof NotesCivsIndexRoute
@@ -96,7 +110,9 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/games/new': typeof GamesNewRoute
+  '/opponents/$key': typeof OpponentsKeyRoute
   '/games': typeof GamesIndexRoute
+  '/opponents': typeof OpponentsIndexRoute
   '/notes/civs/$slug': typeof NotesCivsSlugRoute
   '/notes/maps/$slug': typeof NotesMapsSlugRoute
   '/notes/civs': typeof NotesCivsIndexRoute
@@ -110,7 +126,9 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/games/new': typeof GamesNewRoute
+  '/opponents/$key': typeof OpponentsKeyRoute
   '/games/': typeof GamesIndexRoute
+  '/opponents/': typeof OpponentsIndexRoute
   '/notes/civs/$slug': typeof NotesCivsSlugRoute
   '/notes/maps/$slug': typeof NotesMapsSlugRoute
   '/notes/civs/': typeof NotesCivsIndexRoute
@@ -125,7 +143,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/games/$gameId'
     | '/games/new'
+    | '/opponents/$key'
     | '/games/'
+    | '/opponents/'
     | '/notes/civs/$slug'
     | '/notes/maps/$slug'
     | '/notes/civs/'
@@ -138,7 +158,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/games/$gameId'
     | '/games/new'
+    | '/opponents/$key'
     | '/games'
+    | '/opponents'
     | '/notes/civs/$slug'
     | '/notes/maps/$slug'
     | '/notes/civs'
@@ -151,7 +173,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/games/$gameId'
     | '/games/new'
+    | '/opponents/$key'
     | '/games/'
+    | '/opponents/'
     | '/notes/civs/$slug'
     | '/notes/maps/$slug'
     | '/notes/civs/'
@@ -165,7 +189,9 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
   GamesNewRoute: typeof GamesNewRoute
+  OpponentsKeyRoute: typeof OpponentsKeyRoute
   GamesIndexRoute: typeof GamesIndexRoute
+  OpponentsIndexRoute: typeof OpponentsIndexRoute
   NotesCivsSlugRoute: typeof NotesCivsSlugRoute
   NotesMapsSlugRoute: typeof NotesMapsSlugRoute
   NotesCivsIndexRoute: typeof NotesCivsIndexRoute
@@ -190,11 +216,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/opponents/': {
+      id: '/opponents/'
+      path: '/opponents'
+      fullPath: '/opponents/'
+      preLoaderRoute: typeof OpponentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/games/': {
       id: '/games/'
       path: '/games'
       fullPath: '/games/'
       preLoaderRoute: typeof GamesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/opponents/$key': {
+      id: '/opponents/$key'
+      path: '/opponents/$key'
+      fullPath: '/opponents/$key'
+      preLoaderRoute: typeof OpponentsKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games/new': {
@@ -261,7 +301,9 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   GamesGameIdRoute: GamesGameIdRoute,
   GamesNewRoute: GamesNewRoute,
+  OpponentsKeyRoute: OpponentsKeyRoute,
   GamesIndexRoute: GamesIndexRoute,
+  OpponentsIndexRoute: OpponentsIndexRoute,
   NotesCivsSlugRoute: NotesCivsSlugRoute,
   NotesMapsSlugRoute: NotesMapsSlugRoute,
   NotesCivsIndexRoute: NotesCivsIndexRoute,

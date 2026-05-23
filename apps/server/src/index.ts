@@ -9,6 +9,7 @@ import { aoe4worldRoutes } from "./routes/aoe4world.ts";
 import { civsRoutes } from "./routes/civs.ts";
 import { gamesRoutes } from "./routes/games.ts";
 import { notesRoutes } from "./routes/notes.ts";
+import { opponentsRoutes } from "./routes/opponents.ts";
 import { syncRoutes } from "./routes/sync.ts";
 import { statsRoutes } from "./routes/stats.ts";
 
@@ -23,6 +24,7 @@ api.route("/aoe4world", aoe4worldRoutes);
 api.route("/civs", civsRoutes);
 api.route("/games", gamesRoutes);
 api.route("/notes", notesRoutes);
+api.route("/opponents", opponentsRoutes);
 api.route("/sync", syncRoutes);
 api.route("/stats", statsRoutes);
 

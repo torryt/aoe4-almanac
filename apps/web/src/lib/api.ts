@@ -77,6 +77,69 @@ export const qk = {
   statsByCiv: (myCiv: string) => ["stats", "by-civ", myCiv] as const,
   statsByMap: ["stats", "by-map"] as const,
   statsRecent: ["stats", "recent"] as const,
+  opponents: (params: Record<string, unknown> = {}) =>
+    ["opponents", params] as const,
+  opponent: (key: string) => ["opponent", key] as const,
+};
+
+export type Opponent = {
+  key: string;
+  profile_id: number | null;
+  name: string;
+  games: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  last_played_at: number;
+  win_rate: number | null;
+};
+
+export type OpponentBreakdown = {
+  civ_slug: string;
+  games: number;
+  wins: number;
+  losses: number;
+  win_rate: number | null;
+};
+
+export type OpponentMapBreakdown = {
+  map_slug: string;
+  games: number;
+  wins: number;
+  losses: number;
+  win_rate: number | null;
+};
+
+export type OpponentGame = {
+  id: number;
+  started_at: number;
+  duration_seconds: number | null;
+  map_slug: string | null;
+  kind: string;
+  my_civ_slug: string;
+  my_result: "win" | "loss" | "draw" | "unknown";
+  my_rating: number | null;
+  my_rating_diff: number | null;
+  opp_civ_slug: string;
+  opp_rating: number | null;
+};
+
+export type OpponentDetail = {
+  opponent: {
+    profile_id: number | null;
+    name: string;
+    games: number;
+    wins: number;
+    losses: number;
+    draws: number;
+    first_played_at: number | null;
+    last_played_at: number | null;
+    win_rate: number | null;
+  };
+  by_opp_civ: OpponentBreakdown[];
+  by_my_civ: OpponentBreakdown[];
+  by_map: OpponentMapBreakdown[];
+  games: OpponentGame[];
 };
 
 // Response types (loose because server is single source of truth)

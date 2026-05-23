@@ -151,6 +151,8 @@ function Masthead({ tickerText, live }: { tickerText: string; live: boolean }) {
         <Dot />
         <NavLink to="/games">Ledger</NavLink>
         <Dot />
+        <NavLink to="/opponents">Opponents</NavLink>
+        <Dot />
         <NavLink to="/notes/matchups">Matchups</NavLink>
         <Dot />
         <NavLink to="/notes/civs">Civs</NavLink>
