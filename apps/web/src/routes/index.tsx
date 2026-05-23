@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { KNIGHTS_TEMPLAR } from "@aoe4-portal/shared";
+import { KNIGHTS_TEMPLAR } from "@aoe4-almanac/shared";
 import { api, qk, type GameDto, type Me, type SyncStatus } from "../lib/api.ts";
 import { useSyncEvents } from "../lib/useSyncEvents.ts";
 import { useCivNames } from "../lib/civNames.ts";
@@ -467,7 +467,7 @@ function Stat({
   );
 }
 
-export { prettyCivName as prettyCiv } from "@aoe4-portal/shared";
+export { prettyCivName as prettyCiv } from "@aoe4-almanac/shared";
 
 export function prettyMap(slug: string): string {
   return slug.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());

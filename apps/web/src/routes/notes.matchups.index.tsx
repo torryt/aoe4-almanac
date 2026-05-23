@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { KNIGHTS_TEMPLAR, canonicalCivSlug } from "@aoe4-portal/shared";
+import { KNIGHTS_TEMPLAR, canonicalCivSlug } from "@aoe4-almanac/shared";
 import { api, qk, type Civ } from "../lib/api.ts";
 import { useCivNames } from "../lib/civNames.ts";
 import {

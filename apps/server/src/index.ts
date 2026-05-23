@@ -30,7 +30,7 @@ app.route("/api/v1", api);
 app.get("/healthz", (c) => c.json({ ok: true }));
 
 const e = env();
-const webDist = e.AOE4_PORTAL_WEB_DIST;
+const webDist = e.AOE4_ALMANAC_WEB_DIST;
 if (webDist) {
   app.use("/*", serveStatic({ root: webDist }));
   app.get("*", serveStatic({ path: `${webDist}/index.html` }));
@@ -40,7 +40,7 @@ serve(
   { fetch: app.fetch, port: e.PORT, hostname: e.HOST },
   (info) => {
     // eslint-disable-next-line no-console
-    console.log(`aoe4-portal server listening on http://${e.HOST}:${info.port}`);
+    console.log(`aoe4-almanac server listening on http://${e.HOST}:${info.port}`);
   },
 
 );

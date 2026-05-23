@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   canonicalCivSlug,
   prettyCivName,
-} from "@aoe4-portal/shared";
+} from "@aoe4-almanac/shared";
 import { api, qk, type Civ } from "./api.ts";
 
 export function useCivNames(): {

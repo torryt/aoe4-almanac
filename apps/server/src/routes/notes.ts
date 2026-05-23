@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { noteUpsertBodySchema } from "@aoe4-portal/shared";
+import { noteUpsertBodySchema } from "@aoe4-almanac/shared";
 import type { AppContext } from "../auth/middleware.ts";
 import { db, sqlite } from "../db/client.ts";
 import {

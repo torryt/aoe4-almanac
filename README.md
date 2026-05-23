@@ -1,8 +1,8 @@
-# aoe4-portal
+# aoe4-almanac
 
 Local-first web app to log Age of Empires IV games (auto-imported from [aoe4world.com](https://aoe4world.com)) and keep notes on civs, matchups, maps, and individual games.
 
-See `plans/aoe4-portal.md` for the full design and live progress tracker.
+See `plans/aoe4-almanac.md` for the full design and live progress tracker.
 
 ## Stack
 
@@ -23,4 +23,4 @@ pnpm dev
 
 Web on http://localhost:5173, server on http://localhost:3001. Visit `/settings` to link your aoe4world profile and trigger backfill.
 
-The SQLite DB lives at `~/.aoe4-portal/data.db` by default (override via `AOE4_PORTAL_DB_PATH`).
+The SQLite DB lives at `~/.aoe4-almanac/data.db` by default (override via `AOE4_ALMANAC_DB_PATH`).

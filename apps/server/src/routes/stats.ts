@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { statsByCivQuerySchema } from "@aoe4-portal/shared";
+import { statsByCivQuerySchema } from "@aoe4-almanac/shared";
 import type { AppContext } from "../auth/middleware.ts";
 import { sqlite } from "../db/client.ts";
 

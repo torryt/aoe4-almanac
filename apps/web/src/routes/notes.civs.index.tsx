@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { KNIGHTS_TEMPLAR } from "@aoe4-portal/shared";
+import { KNIGHTS_TEMPLAR } from "@aoe4-almanac/shared";
 import { api, qk, type Civ } from "../lib/api.ts";
 
 export const Route = createFileRoute("/notes/civs/")({

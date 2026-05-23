@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { prettyCivName } from "@aoe4-portal/shared";
+import { prettyCivName } from "@aoe4-almanac/shared";
 import { api, qk, type Civ, type GameDto } from "../lib/api.ts";
 import {
   Button,

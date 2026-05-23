@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { KNIGHTS_TEMPLAR } from "@aoe4-portal/shared";
+import { KNIGHTS_TEMPLAR } from "@aoe4-almanac/shared";
 import { api, qk, type Civ } from "../lib/api.ts";
 import {
   Button,

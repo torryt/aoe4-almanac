@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { aoe4worldSearchQuerySchema } from "@aoe4-portal/shared";
+import { aoe4worldSearchQuerySchema } from "@aoe4-almanac/shared";
 import type { AppContext } from "../auth/middleware.ts";
 import { searchPlayers } from "../services/aoe4world.ts";
 

@@ -9,7 +9,7 @@ Main user mains Knights Templar (`templar`) in AoE4 and wants a private tool tha
 2. Lets them log non-ranked games manually.
 3. Keeps notes along four dimensions: per-civ general, per-matchup (your civ × opp civ), per-map, and per-game.
 
-Repo `/home/torry/dev/aoe4-portal` starts empty. Target: runs locally now; **schema and architecture are multi-user-ready** so hosting + auth can be added later without data migration.
+Repo `/home/torry/dev/aoe4-almanac` starts empty. Target: runs locally now; **schema and architecture are multi-user-ready** so hosting + auth can be added later without data migration.
 
 API choice: **aoe4world** (not RelicLink directly). RelicLink requires Steam-auth gymnastics (see LibreMatch) and is overkill for a single-user log. aoe4world has everything we need, no key required, and exposes a clean `since=`-style cursor.
 
@@ -34,16 +34,16 @@ KT specifics that shaped the design:
 ## Monorepo layout
 
 ```
-/home/torry/dev/aoe4-portal/
+/home/torry/dev/aoe4-almanac/
 ├── package.json                    # workspace root, private:true
 ├── pnpm-workspace.yaml             # packages: ['apps/*','packages/*']
 ├── tsconfig.base.json
 ├── .oxlintrc.json
 ├── oxfmt.toml
-├── .gitignore                      # node_modules, dist, *.db, ~/.aoe4-portal
+├── .gitignore                      # node_modules, dist, *.db, ~/.aoe4-almanac
 ├── README.md
 ├── plans/
-│   └── aoe4-portal.md              # THIS FILE
+│   └── aoe4-almanac.md              # THIS FILE
 │
 ├── apps/
 │   ├── web/                        # Vite + React + TS
@@ -83,7 +83,7 @@ Same-origin in dev via Vite proxy → **no CORS**.
 On connection open: `PRAGMA journal_mode=WAL; foreign_keys=ON; synchronous=NORMAL;`.
 Timestamps stored as **unix seconds** (integer). Every editable row has `created_at` + `updated_at`.
 
-DB file path: `${AOE4_PORTAL_DB_PATH ?? '~/.aoe4-portal/data.db'}` — **not** in the repo.
+DB file path: `${AOE4_ALMANAC_DB_PATH ?? '~/.aoe4-almanac/data.db'}` — **not** in the repo.
 
 ### Tables
 
@@ -164,7 +164,7 @@ Pattern: route loaders prefetch with `queryClient.ensureQueryData`; components u
 
 ## aoe4world sync
 
-- **API client** (`services/aoe4world.ts`): sets `User-Agent: aoe4-portal/0.1` so the maintainer can identify us; single in-flight request per user (mutex); 250ms gap between paginated calls; 30 req/min hard cap; respects 429 with expo backoff (5s → 5min cap), persists `last_error` to `sync_state`.
+- **API client** (`services/aoe4world.ts`): sets `User-Agent: aoe4-almanac/0.1` so the maintainer can identify us; single in-flight request per user (mutex); 250ms gap between paginated calls; 30 req/min hard cap; respects 429 with expo backoff (5s → 5min cap), persists `last_error` to `sync_state`.
 - **Initial backfill** (on link): full pagination of `/games` without `since=`; transactional insert per page.
 - **Steady state** (app open): every 60s poll `/games/last` per tracked leaderboard. If its `game_id > sync_state.last_seen_game_id`, page `/games?since=<last_success_at - 5min>` until backfilled past `last_seen_game_id`.
 - **Dedup**: `INSERT ... ON CONFLICT (user_id, aoe4world_game_id) DO NOTHING` — `since=` is a perf hint only, not a correctness mechanism.
@@ -224,7 +224,7 @@ End-to-end smoke once landed:
 6. `/notes/matchups/templar/mongols` — write a matchup note. Confirm it shows on the matchup grid (`/notes/matchups`) with a "has notes" indicator on the (templar, mongols) cell.
 7. `/notes/maps/<one-of-your-maps>` — same.
 8. Open a 1v1 game detail page, attach a per-game note, confirm it survives a reload.
-9. Restart server (`pnpm dev`), confirm all data persists from `~/.aoe4-portal/data.db`.
+9. Restart server (`pnpm dev`), confirm all data persists from `~/.aoe4-almanac/data.db`.
 10. Run `pnpm db:audit-civ-slugs` — confirm zero unknown slugs (or commit the aliases it surfaces).
 11. `pnpm lint` (oxlint) and `pnpm fmt` (oxfmt) both clean.
 
@@ -298,7 +298,7 @@ End-to-end smoke once landed:
 - [x] `scripts/audit-civ-slugs.ts` written and ready (run after first backfill to surface unknown slugs)
 - [x] `pnpm exec oxlint` clean — 0 errors, only intentional rate-limiter warnings remain
 - [x] `pnpm exec tsc --noEmit` clean for all three workspaces (shared, server, web)
-- [x] `pnpm --filter @aoe4-portal/web build` succeeds (342 modules, 362 KB main bundle)
+- [x] `pnpm --filter @aoe4-almanac/web build` succeeds (342 modules, 362 KB main bundle)
 
 ### Run it
 ```
@@ -332,8 +332,8 @@ Backed out the short-form aoe4world slugs (`templar`, `zhuxi`, `hre`, …) and a
 
 To roll out on an existing DB:
 ```
-pnpm --filter @aoe4-portal/server db:seed
-pnpm --filter @aoe4-portal/server db:canonicalize-civ-slugs
+pnpm --filter @aoe4-almanac/server db:seed
+pnpm --filter @aoe4-almanac/server db:canonicalize-civ-slugs
 ```
 
 ### Known follow-ups (not blocking)

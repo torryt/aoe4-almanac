@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { VARIANT_PARENTS } from "@aoe4-portal/shared";
+import { VARIANT_PARENTS } from "@aoe4-almanac/shared";
 import { db, sqlite } from "../db/client.ts";
 import { civilizations, civSlugAliases, users } from "../db/schema.ts";
 
@@ -22,7 +22,7 @@ function pickStr(v: unknown): string | undefined {
 
 async function fetchCivs(): Promise<RawCiv[]> {
   const res = await fetch(CIVS_INDEX_URL, {
-    headers: { "user-agent": "aoe4-portal-seed/0.1" },
+    headers: { "user-agent": "aoe4-almanac-seed/0.1" },
   });
   if (!res.ok) {
     throw new Error(`Failed to fetch civs-index.json: ${res.status} ${res.statusText}`);

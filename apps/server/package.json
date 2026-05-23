@@ -1,5 +1,5 @@
 {
-  "name": "@aoe4-portal/server",
+  "name": "@aoe4-almanac/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "db:audit-civ-slugs": "tsx src/scripts/audit-civ-slugs.ts"
   },
   "dependencies": {
-    "@aoe4-portal/shared": "workspace:*",
+    "@aoe4-almanac/shared": "workspace:*",
     "@hono/node-server": "^1.13.0",
     "@hono/zod-validator": "^0.4.0",
     "better-sqlite3": "^12.10.0",

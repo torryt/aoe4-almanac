@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { linkAoe4WorldBodySchema } from "@aoe4-portal/shared";
+import { linkAoe4WorldBodySchema } from "@aoe4-almanac/shared";
 import type { AppContext } from "../auth/middleware.ts";
 import { db } from "../db/client.ts";
 import { users } from "../db/schema.ts";

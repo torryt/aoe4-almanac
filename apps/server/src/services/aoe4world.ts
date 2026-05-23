@@ -108,7 +108,7 @@ function wait(ms: number): Promise<void> {
 }
 
 async function rateLimitedFetch(url: string, init?: RequestInit): Promise<Response> {
-  const ua = env().AOE4_PORTAL_USER_AGENT;
+  const ua = env().AOE4_ALMANAC_USER_AGENT;
   await pace();
   const headers = new Headers(init?.headers);
   headers.set("user-agent", ua);

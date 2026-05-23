@@ -23,7 +23,7 @@ importers:
 
   apps/server:
     dependencies:
-      '@aoe4-portal/shared':
+      '@aoe4-almanac/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@hono/node-server':
@@ -63,7 +63,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@aoe4-portal/shared':
+      '@aoe4-almanac/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@radix-ui/react-dialog':

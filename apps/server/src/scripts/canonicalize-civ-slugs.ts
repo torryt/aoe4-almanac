@@ -5,7 +5,7 @@
 //
 // Run AFTER `seed-civs` so the canonical rows exist in civilizations.
 
-import { SHORT_SLUG_TO_CANONICAL } from "@aoe4-portal/shared";
+import { SHORT_SLUG_TO_CANONICAL } from "@aoe4-almanac/shared";
 import { sqlite } from "../db/client.ts";
 
 const conn = sqlite();

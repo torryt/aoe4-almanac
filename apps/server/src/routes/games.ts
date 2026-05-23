@@ -5,7 +5,7 @@ import {
   gamesQuerySchema,
   manualGameBodySchema,
   manualGamePatchSchema,
-} from "@aoe4-portal/shared";
+} from "@aoe4-almanac/shared";
 import type { AppContext } from "../auth/middleware.ts";
 import { db, sqlite } from "../db/client.ts";
 import { gameParticipants, games } from "../db/schema.ts";
