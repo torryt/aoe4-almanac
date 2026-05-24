@@ -371,9 +371,7 @@ function GameDetail() {
           <p className="marginalia pb-5">
             {g.kind === "rm_1v1"
               ? "A ranked 1v1 campaign."
-              : g.kind === "manual"
-                ? "A manual record, logged by hand."
-                : `A ${g.kind.replace(/_/g, " ")} match.`}
+              : `A ${g.kind.replace(/_/g, " ")} match.`}
             {g.map_slug && ` Fought on ${prettyMap(g.map_slug)}.`}
           </p>
 

@@ -191,10 +191,10 @@ function Dashboard() {
           <aside className="col-span-4 border-l border-[rgba(28,28,26,0.15)] pl-8">
             <div className="eyebrow-tight pb-4">From the desk</div>
             <p className="marginalia">
-              The figure to the left counts all imported and manually-logged
-              games within the last thirty days. Quick-match, custom lobbies and
-              the occasional Treaty are tallied alongside ranked entries —
-              filters are applied in the bound Ledger.
+              The figure to the left counts every game imported within the last
+              thirty days. Quick-match, custom lobbies and the occasional Treaty
+              are tallied alongside ranked entries — filters are applied in the
+              bound Ledger.
             </p>
 
             <hr className="rule-faint my-6" />
@@ -352,11 +352,7 @@ function Dashboard() {
                     <Link to="/settings" className="underline">
                       Link aoe4world
                     </Link>{" "}
-                    or{" "}
-                    <Link to="/games/new" className="underline">
-                      log a manual game
-                    </Link>
-                    .
+                    to populate the ledger.
                   </>
                 )}
               </div>

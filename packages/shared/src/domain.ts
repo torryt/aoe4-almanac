@@ -30,7 +30,6 @@ export const gameKindSchema = z.enum([
   "qm_3v3",
   "qm_4v4",
   "custom",
-  "manual",
   "unknown",
 ]);
 export type GameKind = z.infer<typeof gameKindSchema>;
@@ -38,7 +37,7 @@ export type GameKind = z.infer<typeof gameKindSchema>;
 export const resultSchema = z.enum(["win", "loss", "draw", "unknown"]);
 export type Result = z.infer<typeof resultSchema>;
 
-export const sourceSchema = z.enum(["aoe4world", "manual"]);
+export const sourceSchema = z.enum(["aoe4world"]);
 export type GameSource = z.infer<typeof sourceSchema>;
 
 export const civSchema = z.object({

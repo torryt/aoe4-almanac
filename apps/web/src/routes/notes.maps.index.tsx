@@ -96,10 +96,6 @@ function MapNotesIndex() {
               No maps recorded yet. Sync games from{" "}
               <Link to="/settings" className="underline">
                 Settings
-              </Link>{" "}
-              or{" "}
-              <Link to="/games/new" className="underline">
-                log a manual game
               </Link>
               .
             </div>

@@ -218,7 +218,7 @@ export type ParticipantDto = {
 
 export type GameDto = {
   id: number;
-  source: "aoe4world" | "manual";
+  source: "aoe4world";
   aoe4world_game_id: number | null;
   started_at: number;
   duration_seconds: number | null;
