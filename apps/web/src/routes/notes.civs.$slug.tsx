@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { api, qk, type Civ, type GameDto } from "../lib/api.ts";
 import {
+  autoSaveStatusLabel,
+  useAutoSaveNote,
+} from "../lib/useAutoSaveNote.ts";
+import {
   Button,
   Tabs,
   TabsContent,
@@ -83,6 +87,12 @@ function CivNoteEditor() {
     { games: 0, wins: 0, losses: 0 },
   );
   const dirty = draft !== (noteQ.data?.body_md ?? "");
+  const auto = useAutoSaveNote({
+    draft,
+    savedBody: noteQ.data?.body_md ?? "",
+    isSaving: save.isPending,
+    save: (body) => save.mutate(body),
+  });
 
   return (
     <section className="spread px-10 pt-16 pb-20">
@@ -141,6 +151,7 @@ function CivNoteEditor() {
               <Textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
+                onBlur={() => auto.autoSaveEnabled && auto.flush()}
                 rows={14}
                 className="essay dropcap"
                 placeholder={`Opening preferences, economic rhythm, signature units for ${civName}…`}
@@ -164,14 +175,20 @@ function CivNoteEditor() {
                 ? `Last revised ${relative(noteQ.data.updated_at)}`
                 : "Unwritten"}
             </span>
-            <Button
-              variant="signet"
-              size="sm"
-              onClick={() => save.mutate(draft)}
-              disabled={!dirty || save.isPending}
-            >
-              {save.isPending ? "Saving…" : dirty ? "Save Note" : "Saved"}
-            </Button>
+            {auto.autoSaveEnabled ? (
+              <span className="kicker italic" style={{ fontSize: 13 }}>
+                {autoSaveStatusLabel(auto.status, !!noteQ.data?.updated_at)}
+              </span>
+            ) : (
+              <Button
+                variant="signet"
+                size="sm"
+                onClick={() => save.mutate(draft)}
+                disabled={!dirty || save.isPending}
+              >
+                {save.isPending ? "Saving…" : dirty ? "Save Note" : "Saved"}
+              </Button>
+            )}
           </div>
         </article>
 

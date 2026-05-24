@@ -107,6 +107,11 @@ export const userMeSchema = z.object({
 });
 export type UserMe = z.infer<typeof userMeSchema>;
 
+export const userPreferencesSchema = z.object({
+  auto_save_notes: z.boolean(),
+});
+export type UserPreferences = z.infer<typeof userPreferencesSchema>;
+
 export const syncStateSchema = z.object({
   leaderboard: z.string(),
   last_seen_game_id: z.number().int().nullable(),

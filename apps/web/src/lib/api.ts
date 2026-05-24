@@ -65,6 +65,7 @@ export const api = {
 // Query keys
 export const qk = {
   me: ["me"] as const,
+  preferences: ["me", "preferences"] as const,
   civs: ["civs"] as const,
   games: (filters: Record<string, unknown> = {}) => ["games", filters] as const,
   game: (id: number) => ["game", id] as const,
@@ -186,6 +187,10 @@ export type OpponentDetail = {
 };
 
 // Response types (loose because server is single source of truth)
+export type UserPreferences = {
+  auto_save_notes: boolean;
+};
+
 export type Me = {
   id: number;
   slug: string;

@@ -11,11 +11,16 @@ import {
   resultSchema,
   syncStateSchema,
   userMeSchema,
+  userPreferencesSchema,
   aoe4worldSearchResultSchema,
 } from "./domain.ts";
 
 // /me
 export const meResponseSchema = userMeSchema;
+
+// /me/preferences
+export const preferencesResponseSchema = userPreferencesSchema;
+export const preferencesUpdateBodySchema = userPreferencesSchema.partial();
 
 // /aoe4world/search
 export const aoe4worldSearchQuerySchema = z.object({ q: z.string().min(2) });

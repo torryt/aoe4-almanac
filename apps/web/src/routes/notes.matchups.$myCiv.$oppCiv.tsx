@@ -15,6 +15,10 @@ import {
   type GameNoteBatchEntry,
 } from "../lib/api.ts";
 import { Spinner } from "../components/Spinner.tsx";
+import {
+  autoSaveStatusLabel,
+  useAutoSaveNote,
+} from "../lib/useAutoSaveNote.ts";
 import { prettyMap } from "./index.tsx";
 import {
   Button,
@@ -116,6 +120,12 @@ function MatchupNoteEditor() {
 
   const wordCount = draft.trim().split(/\s+/).filter(Boolean).length;
   const dirty = draft !== (noteQ.data?.body_md ?? "");
+  const auto = useAutoSaveNote({
+    draft,
+    savedBody: noteQ.data?.body_md ?? "",
+    isSaving: save.isPending,
+    save: (body) => save.mutate(body),
+  });
 
   return (
     <section className="spread px-10 pt-16 pb-20">
@@ -180,6 +190,7 @@ function MatchupNoteEditor() {
               <Textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
+                onBlur={() => auto.autoSaveEnabled && auto.flush()}
                 rows={14}
                 className="essay dropcap"
                 placeholder={`${my?.name ?? prettyCivName(myCiv)} vs ${opp?.name ?? prettyCivName(oppCiv)}: what to do, when, common opener responses…`}
@@ -206,14 +217,20 @@ function MatchupNoteEditor() {
             </span>
             <div className="flex items-center gap-3">
               <span className="folio">page 9</span>
-              <Button
-                variant="signet"
-                size="sm"
-                onClick={() => save.mutate(draft)}
-                disabled={!dirty || save.isPending}
-              >
-                {save.isPending ? "Saving…" : dirty ? "Save Essay" : "Saved"}
-              </Button>
+              {auto.autoSaveEnabled ? (
+                <span className="kicker italic" style={{ fontSize: 13 }}>
+                  {autoSaveStatusLabel(auto.status, !!noteQ.data?.updated_at)}
+                </span>
+              ) : (
+                <Button
+                  variant="signet"
+                  size="sm"
+                  onClick={() => save.mutate(draft)}
+                  disabled={!dirty || save.isPending}
+                >
+                  {save.isPending ? "Saving…" : dirty ? "Save Essay" : "Saved"}
+                </Button>
+              )}
             </div>
           </div>
 

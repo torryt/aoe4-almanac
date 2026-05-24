@@ -10,6 +10,7 @@ import {
   type Me,
   type SearchResult,
   type SyncStatus,
+  type UserPreferences,
 } from "../lib/api.ts";
 import { useSyncEvents } from "../lib/useSyncEvents.ts";
 import { Spinner } from "../components/Spinner.tsx";
@@ -89,6 +90,16 @@ function Settings() {
   const syncMut = useMutation({
     mutationFn: (full: boolean) => api.post<{ ok: true }>("/sync/run", { full }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.syncStatus }),
+  });
+
+  const prefs = useQuery({
+    queryKey: qk.preferences,
+    queryFn: () => api.get<UserPreferences>("/me/preferences"),
+  });
+  const updatePrefs = useMutation({
+    mutationFn: (patch: Partial<UserPreferences>) =>
+      api.put<UserPreferences>("/me/preferences", patch),
+    onSuccess: (data) => qc.setQueryData(qk.preferences, data),
   });
 
   async function runSearch(): Promise<void> {
@@ -273,6 +284,37 @@ function Settings() {
                 )}
               </div>
             )}
+          </div>
+
+          <div>
+            <div className="flex items-center gap-4 pb-4">
+              <span className="eyebrow">Preferences</span>
+              <hr className="rule-faint flex-1" />
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="mt-1 size-4 accent-[#9b2b2b] cursor-pointer"
+                checked={prefs.data?.auto_save_notes ?? true}
+                disabled={prefs.isLoading || updatePrefs.isPending}
+                onChange={(e) =>
+                  updatePrefs.mutate({ auto_save_notes: e.target.checked })
+                }
+              />
+              <div>
+                <p
+                  className="font-display"
+                  style={{ fontSize: 18, fontWeight: 600 }}
+                >
+                  Auto-save notes
+                </p>
+                <p className="kicker italic text-[#5b574e]">
+                  Save civ, matchup, map, and game notes automatically as you
+                  type. When off, a Save button reappears on each note.
+                </p>
+              </div>
+            </label>
           </div>
 
           <div>

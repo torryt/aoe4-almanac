@@ -1,10 +1,13 @@
 import { zValidator } from "@hono/zod-validator";
 import { eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { linkAoe4WorldBodySchema } from "@aoe4-almanac/shared";
+import {
+  linkAoe4WorldBodySchema,
+  preferencesUpdateBodySchema,
+} from "@aoe4-almanac/shared";
 import type { AppContext } from "../auth/middleware.ts";
 import { db } from "../db/client.ts";
-import { users } from "../db/schema.ts";
+import { userPreferences, users } from "../db/schema.ts";
 import { log, logError } from "../log.ts";
 import {
   getLeaderboardPage,
@@ -176,6 +179,46 @@ meRoutes.get("/rating-info", async (c) => {
     return c.json({ error: "fetch failed" }, 502);
   }
 });
+
+const DEFAULT_PREFERENCES = { auto_save_notes: true };
+
+meRoutes.get("/preferences", (c) => {
+  const userId = c.get("userId");
+  const row = db()
+    .select()
+    .from(userPreferences)
+    .where(eq(userPreferences.userId, userId))
+    .get();
+  if (!row) return c.json(DEFAULT_PREFERENCES);
+  return c.json({ auto_save_notes: row.autoSaveNotes });
+});
+
+meRoutes.put(
+  "/preferences",
+  zValidator("json", preferencesUpdateBodySchema),
+  (c) => {
+    const userId = c.get("userId");
+    const patch = c.req.valid("json");
+    const existing = db()
+      .select()
+      .from(userPreferences)
+      .where(eq(userPreferences.userId, userId))
+      .get();
+    const merged = {
+      autoSaveNotes:
+        patch.auto_save_notes ?? existing?.autoSaveNotes ?? true,
+    };
+    db()
+      .insert(userPreferences)
+      .values({ userId, ...merged })
+      .onConflictDoUpdate({
+        target: userPreferences.userId,
+        set: { ...merged, updatedAt: sql`(unixepoch())` },
+      })
+      .run();
+    return c.json({ auto_save_notes: merged.autoSaveNotes });
+  },
+);
 
 meRoutes.post("/sync-now", async (c) => {
   const userId = c.get("userId");

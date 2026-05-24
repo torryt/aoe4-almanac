@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { api, qk, type Civ, type GameDto } from "../lib/api.ts";
 import {
+  autoSaveStatusLabel,
+  useAutoSaveNote,
+} from "../lib/useAutoSaveNote.ts";
+import {
   Button,
   Tabs,
   TabsContent,
@@ -65,6 +69,13 @@ function GameDetail() {
     mutationFn: (body_md: string) =>
       api.put<{ ok: true }>(`/notes/games/${id}`, { body_md }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.gameNote(id) }),
+  });
+
+  const auto = useAutoSaveNote({
+    draft,
+    savedBody: noteQ.data?.body_md ?? "",
+    isSaving: saveNote.isPending,
+    save: (body) => saveNote.mutate(body),
   });
 
   if (gameQ.isLoading)
@@ -318,6 +329,7 @@ function GameDetail() {
               <Textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
+                onBlur={() => auto.autoSaveEnabled && auto.flush()}
                 rows={6}
                 className="essay"
                 placeholder="Build, key timings, lessons learned…"
@@ -355,14 +367,20 @@ function GameDetail() {
                 </span>
               )}
             </div>
-            <Button
-              variant="signet"
-              size="sm"
-              onClick={() => saveNote.mutate(draft)}
-              disabled={!dirty || saveNote.isPending}
-            >
-              {saveNote.isPending ? "Saving…" : dirty ? "Save Note" : "Saved"}
-            </Button>
+            {auto.autoSaveEnabled ? (
+              <span className="kicker italic" style={{ fontSize: 13 }}>
+                {autoSaveStatusLabel(auto.status, !!noteQ.data?.updated_at)}
+              </span>
+            ) : (
+              <Button
+                variant="signet"
+                size="sm"
+                onClick={() => saveNote.mutate(draft)}
+                disabled={!dirty || saveNote.isPending}
+              >
+                {saveNote.isPending ? "Saving…" : dirty ? "Save Note" : "Saved"}
+              </Button>
+            )}
           </div>
         </article>
 

@@ -26,6 +26,16 @@ export const users = sqliteTable(
   }),
 );
 
+export const userPreferences = sqliteTable("user_preferences", {
+  userId: integer("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  autoSaveNotes: integer("auto_save_notes", { mode: "boolean" })
+    .notNull()
+    .default(true),
+  updatedAt: integer("updated_at").notNull().default(now),
+});
+
 export const sessions = sqliteTable(
   "sessions",
   {
