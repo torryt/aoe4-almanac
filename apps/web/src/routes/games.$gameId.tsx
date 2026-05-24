@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { api, qk, type Civ, type GameDto } from "../lib/api.ts";
 import {
@@ -60,11 +59,6 @@ function GameDetail() {
       ),
   });
 
-  const [draft, setDraft] = useState("");
-  useEffect(() => {
-    setDraft(noteQ.data?.body_md ?? "");
-  }, [noteQ.data?.body_md]);
-
   const saveNote = useMutation({
     mutationFn: (body_md: string) =>
       api.put<{ ok: true }>(`/notes/games/${id}`, { body_md }),
@@ -72,11 +66,11 @@ function GameDetail() {
   });
 
   const auto = useAutoSaveNote({
-    draft,
-    savedBody: noteQ.data?.body_md ?? "",
+    serverBody: noteQ.data?.body_md,
     isSaving: saveNote.isPending,
     save: (body) => saveNote.mutate(body),
   });
+  const { draft, setDraft, dirty } = auto;
 
   if (gameQ.isLoading)
     return (
@@ -95,7 +89,6 @@ function GameDetail() {
   const civMap = new Map((civsQ.data?.civs ?? []).map((c) => [c.slug, c]));
   const oppParts = g.participants.filter((p) => !p.is_self);
   const selfPart = g.participants.find((p) => p.is_self);
-  const dirty = draft !== (noteQ.data?.body_md ?? "");
 
   return (
     <section className="spread px-10 pt-16 pb-24">

@@ -5,7 +5,6 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { prettyCivName } from "@aoe4-almanac/shared";
 import {
   api,
@@ -98,11 +97,6 @@ function MatchupNoteEditor() {
   const gameNotesById = new Map<number, GameNoteBatchEntry>();
   for (const n of gameNotesQ.data?.notes ?? []) gameNotesById.set(n.game_id, n);
 
-  const [draft, setDraft] = useState("");
-  useEffect(() => {
-    setDraft(noteQ.data?.body_md ?? "");
-  }, [noteQ.data?.body_md]);
-
   const save = useMutation({
     mutationFn: (body_md: string) =>
       api.put<{ ok: true }>(`/notes/matchups/${myCiv}/${oppCiv}`, { body_md }),
@@ -112,6 +106,13 @@ function MatchupNoteEditor() {
     },
   });
 
+  const auto = useAutoSaveNote({
+    serverBody: noteQ.data?.body_md,
+    isSaving: save.isPending,
+    save: (body) => save.mutate(body),
+  });
+  const { draft, setDraft, dirty } = auto;
+
   const civsMap = new Map((civsQ.data?.civs ?? []).map((c) => [c.slug, c]));
   const my = civsMap.get(myCiv);
   const opp = civsMap.get(oppCiv);
@@ -119,13 +120,6 @@ function MatchupNoteEditor() {
   const games = allGames;
 
   const wordCount = draft.trim().split(/\s+/).filter(Boolean).length;
-  const dirty = draft !== (noteQ.data?.body_md ?? "");
-  const auto = useAutoSaveNote({
-    draft,
-    savedBody: noteQ.data?.body_md ?? "",
-    isSaving: save.isPending,
-    save: (body) => save.mutate(body),
-  });
 
   return (
     <section className="spread px-10 pt-16 pb-20">

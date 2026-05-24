@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { api, qk, type Civ, type GameDto } from "../lib/api.ts";
 import {
@@ -54,11 +53,6 @@ function CivNoteEditor() {
     queryFn: () => api.get<{ games: GameDto[] }>(`/games?civ=${slug}&limit=5`),
   });
 
-  const [draft, setDraft] = useState("");
-  useEffect(() => {
-    setDraft(noteQ.data?.body_md ?? "");
-  }, [noteQ.data?.body_md]);
-
   const save = useMutation({
     mutationFn: (body_md: string) =>
       api.put<{ ok: true }>(`/notes/civs/${slug}`, { body_md }),
@@ -67,6 +61,13 @@ function CivNoteEditor() {
       qc.invalidateQueries({ queryKey: qk.civNotes });
     },
   });
+
+  const auto = useAutoSaveNote({
+    serverBody: noteQ.data?.body_md,
+    isSaving: save.isPending,
+    save: (body) => save.mutate(body),
+  });
+  const { draft, setDraft, dirty } = auto;
 
   const civ = (civsQ.data?.civs ?? []).find((c) => c.slug === slug);
   const civName = civ?.name ?? slug;
@@ -86,14 +87,6 @@ function CivNoteEditor() {
     },
     { games: 0, wins: 0, losses: 0 },
   );
-  const dirty = draft !== (noteQ.data?.body_md ?? "");
-  const auto = useAutoSaveNote({
-    draft,
-    savedBody: noteQ.data?.body_md ?? "",
-    isSaving: save.isPending,
-    save: (body) => save.mutate(body),
-  });
-
   return (
     <section className="spread px-10 pt-16 pb-20">
       <Link to="/notes/civs" className="nav-link inline-block mb-4">

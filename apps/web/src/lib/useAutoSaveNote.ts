@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, qk, type UserPreferences } from "./api.ts";
 
 const AUTO_SAVE_DEBOUNCE_MS = 800;
@@ -14,20 +14,58 @@ export function useUserPreferences() {
   });
 }
 
+// Owns the textarea draft so that hydration from the server query and
+// auto-save can be coordinated. Two failure modes this guards against:
+//   1. An empty save firing on mount before draft has been hydrated from
+//      a cached query result — the unmount/StrictMode cleanup would otherwise
+//      compare draft="" against savedBody="<your notes>" and PUT "".
+//   2. The refetch that follows our own save round-tripping the just-saved
+//      body and overwriting newer characters the user typed while in flight.
 export function useAutoSaveNote(opts: {
-  draft: string;
-  savedBody: string;
+  serverBody: string | undefined;
   isSaving: boolean;
   save: (body: string) => void;
 }): {
+  draft: string;
+  setDraft: (v: string) => void;
   autoSaveEnabled: boolean;
   status: AutoSaveStatus;
+  dirty: boolean;
+  hydrated: boolean;
   flush: () => void;
 } {
   const prefs = useUserPreferences();
   const autoSaveEnabled = prefs.data?.auto_save_notes ?? true;
 
-  const dirty = opts.draft !== opts.savedBody;
+  const [draft, setDraftState] = useState("");
+  const [hydrated, setHydrated] = useState(false);
+  const lastServerBodyRef = useRef<string | undefined>(undefined);
+  const interactedRef = useRef(false);
+
+  useEffect(() => {
+    const sb = opts.serverBody;
+    if (sb === undefined) return;
+    if (!hydrated) {
+      // First time the server body is known. Preserve any text the user
+      // already typed before the network resolved.
+      if (!interactedRef.current) setDraftState(sb);
+      lastServerBodyRef.current = sb;
+      setHydrated(true);
+      return;
+    }
+    // Subsequent server changes (our own save echoing back, or an external
+    // edit). Only adopt the new value if the user has no local divergence
+    // from the previous server value, otherwise we'd undo in-flight typing.
+    if (lastServerBodyRef.current !== sb) {
+      setDraftState((prev) =>
+        prev === lastServerBodyRef.current ? sb : prev,
+      );
+      lastServerBodyRef.current = sb;
+    }
+  }, [opts.serverBody, hydrated]);
+
+  const savedBody = opts.serverBody ?? "";
+  const dirty = hydrated && draft !== savedBody;
   const status: AutoSaveStatus = opts.isSaving
     ? "saving"
     : dirty
@@ -35,12 +73,11 @@ export function useAutoSaveNote(opts: {
       : "saved";
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Use refs to keep flush stable while always saving the latest draft.
-  const draftRef = useRef(opts.draft);
-  const savedRef = useRef(opts.savedBody);
+  const draftRef = useRef(draft);
+  const savedRef = useRef(savedBody);
   const saveRef = useRef(opts.save);
-  draftRef.current = opts.draft;
-  savedRef.current = opts.savedBody;
+  draftRef.current = draft;
+  savedRef.current = savedBody;
   saveRef.current = opts.save;
 
   function cancelTimer() {
@@ -52,9 +89,17 @@ export function useAutoSaveNote(opts: {
 
   function flush() {
     cancelTimer();
-    if (draftRef.current !== savedRef.current) {
+    if (
+      interactedRef.current &&
+      draftRef.current !== savedRef.current
+    ) {
       saveRef.current(draftRef.current);
     }
+  }
+
+  function setDraft(v: string) {
+    interactedRef.current = true;
+    setDraftState(v);
   }
 
   useEffect(() => {
@@ -62,7 +107,7 @@ export function useAutoSaveNote(opts: {
       cancelTimer();
       return;
     }
-    if (!dirty) {
+    if (!interactedRef.current || !dirty) {
       cancelTimer();
       return;
     }
@@ -74,9 +119,8 @@ export function useAutoSaveNote(opts: {
       }
     }, AUTO_SAVE_DEBOUNCE_MS);
     return cancelTimer;
-  }, [autoSaveEnabled, dirty, opts.draft]);
+  }, [autoSaveEnabled, dirty, draft]);
 
-  // Save on unmount / page hide if there are unsaved edits.
   useEffect(() => {
     function onHide() {
       if (autoSaveEnabled) flush();
@@ -84,14 +128,26 @@ export function useAutoSaveNote(opts: {
     window.addEventListener("pagehide", onHide);
     return () => {
       window.removeEventListener("pagehide", onHide);
-      if (autoSaveEnabled && draftRef.current !== savedRef.current) {
+      if (
+        autoSaveEnabled &&
+        interactedRef.current &&
+        draftRef.current !== savedRef.current
+      ) {
         saveRef.current(draftRef.current);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSaveEnabled]);
 
-  return { autoSaveEnabled, status, flush };
+  return {
+    draft,
+    setDraft,
+    autoSaveEnabled,
+    status,
+    dirty,
+    hydrated,
+    flush,
+  };
 }
 
 export function autoSaveStatusLabel(

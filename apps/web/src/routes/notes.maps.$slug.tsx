@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { api, qk } from "../lib/api.ts";
 import {
@@ -46,11 +45,6 @@ function MapNoteEditor() {
   });
   const myStats = (statsQ.data?.rows ?? []).find((r) => r.map_slug === slug);
 
-  const [draft, setDraft] = useState("");
-  useEffect(() => {
-    setDraft(noteQ.data?.body_md ?? "");
-  }, [noteQ.data?.body_md]);
-
   const save = useMutation({
     mutationFn: (body_md: string) =>
       api.put<{ ok: true }>(`/notes/maps/${slug}`, { body_md }),
@@ -59,13 +53,12 @@ function MapNoteEditor() {
       qc.invalidateQueries({ queryKey: qk.mapNotes });
     },
   });
-  const dirty = draft !== (noteQ.data?.body_md ?? "");
   const auto = useAutoSaveNote({
-    draft,
-    savedBody: noteQ.data?.body_md ?? "",
+    serverBody: noteQ.data?.body_md,
     isSaving: save.isPending,
     save: (body) => save.mutate(body),
   });
+  const { draft, setDraft, dirty } = auto;
 
   return (
     <section className="spread px-10 pt-16 pb-20">
