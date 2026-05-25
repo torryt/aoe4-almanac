@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { noteUpsertBodySchema } from "@aoe4-almanac/shared";
 import type { AppContext } from "../auth/middleware.ts";
@@ -68,9 +68,21 @@ notesRoutes.put(
 notesRoutes.get("/matchups", (c) => {
   const userId = c.get("userId");
   const myCiv = c.req.query("my_civ");
+  // Exclude rows with empty or whitespace-only bodies — these can exist when
+  // a user opened the editor (creating a row via auto-save) but typed nothing.
+  // SQLite's single-arg trim() only strips ASCII spaces; pass an explicit
+  // character set so tabs/newlines/CRs also count as empty.
+  const nonEmpty = ne(
+    sql`trim(${matchupNotes.bodyMd}, ' ' || x'09' || x'0a' || x'0d')`,
+    "",
+  );
   const where = myCiv
-    ? and(eq(matchupNotes.userId, userId), eq(matchupNotes.myCivSlug, myCiv))
-    : eq(matchupNotes.userId, userId);
+    ? and(
+        eq(matchupNotes.userId, userId),
+        eq(matchupNotes.myCivSlug, myCiv),
+        nonEmpty,
+      )
+    : and(eq(matchupNotes.userId, userId), nonEmpty);
   const rows = db()
     .select()
     .from(matchupNotes)

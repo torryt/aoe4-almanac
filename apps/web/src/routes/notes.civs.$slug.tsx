@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import ReactMarkdown from "react-markdown";
@@ -51,6 +52,18 @@ function CivNoteEditor() {
   const recentQ = useQuery({
     queryKey: qk.games({ civ: slug, limit: 5 }),
     queryFn: () => api.get<{ games: GameDto[] }>(`/games?civ=${slug}&limit=5`),
+  });
+  const matchupNotesQ = useQuery({
+    queryKey: qk.matchupNotes(slug),
+    queryFn: () =>
+      api.get<{
+        notes: Array<{
+          my_civ_slug: string;
+          opp_civ_slug: string;
+          excerpt: string;
+          updated_at: number;
+        }>;
+      }>(`/notes/matchups?my_civ=${slug}`),
   });
 
   const save = useMutation({
@@ -183,6 +196,13 @@ function CivNoteEditor() {
               </Button>
             )}
           </div>
+
+          <MatchupNotesSection
+            myCiv={slug}
+            notes={matchupNotesQ.data?.notes ?? []}
+            stats={statsQ.data?.rows ?? []}
+            isLoading={matchupNotesQ.isLoading}
+          />
         </article>
 
         <aside className="col-span-4 border-l border-[rgba(28,28,26,0.15)] pl-8">
@@ -310,6 +330,164 @@ function CivNoteEditor() {
         </aside>
       </div>
     </section>
+  );
+}
+
+type MatchupNoteRow = {
+  my_civ_slug: string;
+  opp_civ_slug: string;
+  excerpt: string;
+  updated_at: number;
+};
+
+type StatRow = {
+  opp_civ_slug: string;
+  games: number;
+  wins: number;
+  losses: number;
+  win_rate: number | null;
+};
+
+function MatchupNotesSection({
+  myCiv,
+  notes,
+  stats,
+  isLoading,
+}: {
+  myCiv: string;
+  notes: MatchupNoteRow[];
+  stats: StatRow[];
+  isLoading: boolean;
+}) {
+  if (isLoading) return null;
+  if (notes.length === 0) return null;
+
+  const statsByOpp = new Map(stats.map((s) => [s.opp_civ_slug, s]));
+  const sorted = [...notes].sort((a, b) => {
+    const ga = statsByOpp.get(a.opp_civ_slug)?.games ?? 0;
+    const gb = statsByOpp.get(b.opp_civ_slug)?.games ?? 0;
+    if (gb !== ga) return gb - ga;
+    return b.updated_at - a.updated_at;
+  });
+
+  return (
+    <>
+      <hr className="rule mt-10" />
+      <div className="flex items-center gap-4 pt-8 pb-4">
+        <span className="eyebrow">Matchup notes</span>
+        <hr className="rule-faint flex-1" />
+        <span className="kicker" style={{ fontSize: 13 }}>
+          {notes.length} written
+        </span>
+      </div>
+      <div className="space-y-2">
+        {sorted.map((n) => (
+          <MatchupNoteRow
+            key={n.opp_civ_slug}
+            myCiv={myCiv}
+            oppCiv={n.opp_civ_slug}
+            excerpt={n.excerpt}
+            updatedAt={n.updated_at}
+            stat={statsByOpp.get(n.opp_civ_slug)}
+          />
+        ))}
+      </div>
+      <div className="pt-4">
+        <Link
+          to="/notes/matchups"
+          search={{ my_civ: myCiv }}
+          className="nav-link"
+        >
+          See all matchups →
+        </Link>
+      </div>
+    </>
+  );
+}
+
+function MatchupNoteRow({
+  myCiv,
+  oppCiv,
+  excerpt,
+  updatedAt,
+  stat,
+}: {
+  myCiv: string;
+  oppCiv: string;
+  excerpt: string;
+  updatedAt: number;
+  stat: StatRow | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  const fullQ = useQuery({
+    queryKey: qk.matchupNote(myCiv, oppCiv),
+    queryFn: () =>
+      api.get<{ body_md: string; updated_at: number | null }>(
+        `/notes/matchups/${myCiv}/${oppCiv}`,
+      ),
+    enabled: open,
+  });
+
+  return (
+    <details
+      className="border-b border-[rgba(28,28,26,0.12)] pb-3"
+      onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
+    >
+      <summary
+        className="flex items-baseline justify-between gap-4 cursor-pointer font-display py-2"
+        style={{ fontSize: 17 }}
+      >
+        <span>
+          <span className="italic text-[#5b574e]">vs </span>
+          <span className="text-[#1c1c1a]">{prettyCiv(oppCiv)}</span>
+        </span>
+        <span className="kicker" style={{ fontSize: 13 }}>
+          {stat ? (
+            <>
+              {stat.wins}–{stat.losses}
+              {stat.win_rate !== null && (
+                <span
+                  className={`ml-2 italic ${stat.win_rate >= 0.5 ? "" : "text-[#9b2b2b]"}`}
+                >
+                  {(stat.win_rate * 100).toFixed(0)}%
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="italic">no games</span>
+          )}
+        </span>
+      </summary>
+      <div className="pl-1 pt-2">
+        {!open ? (
+          <p className="kicker italic" style={{ fontSize: 14 }}>
+            {excerpt}
+            {excerpt.length >= 140 && "…"}
+          </p>
+        ) : fullQ.isLoading ? (
+          <p className="kicker italic">Loading…</p>
+        ) : (
+          <>
+            <div className="prose-note">
+              <ReactMarkdown>{fullQ.data?.body_md ?? ""}</ReactMarkdown>
+            </div>
+            <div className="flex items-center justify-between pt-3">
+              <span className="kicker" style={{ fontSize: 12 }}>
+                Last revised {relative(updatedAt)}
+              </span>
+              <Link
+                to="/notes/matchups/$myCiv/$oppCiv"
+                params={{ myCiv, oppCiv }}
+                className="nav-link"
+                style={{ fontSize: 13 }}
+              >
+                Open full matchup →
+              </Link>
+            </div>
+          </>
+        )}
+      </div>
+    </details>
   );
 }
 
