@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { api, qk, type Civ, type GameDto } from "../lib/api.ts";
+import {
+  api,
+  qk,
+  type Civ,
+  type GameDto,
+  type GameNoteBatchEntry,
+} from "../lib/api.ts";
 import {
   Select,
   SelectContent,
@@ -59,6 +65,18 @@ function GamesList() {
         `/games${qs ? `?${qs}` : ""}`,
       ),
   });
+
+  const gameIds = (games.data?.games ?? []).map((g) => g.id);
+  const gameNotesQ = useQuery({
+    queryKey: qk.gameNotesBatch(gameIds),
+    queryFn: () =>
+      api.get<{ notes: GameNoteBatchEntry[] }>(
+        `/notes/games?ids=${gameIds.join(",")}`,
+      ),
+    enabled: gameIds.length > 0,
+  });
+  const notedGameIds = new Set<number>();
+  for (const n of gameNotesQ.data?.notes ?? []) notedGameIds.add(n.game_id);
 
   function update(key: string, value: string | undefined): void {
     const next = { ...search, [key]: value || undefined } as Record<
@@ -227,6 +245,19 @@ function GamesList() {
                     ) : (
                       <span className="text-[#5b574e] italic">—</span>
                     )}
+                    {notedGameIds.has(g.id) ? (
+                      <span
+                        className="text-[#5b574e]"
+                        title="Annotated"
+                        style={{
+                          marginLeft: 8,
+                          fontSize: 13,
+                          verticalAlign: "super",
+                        }}
+                      >
+                        †
+                      </span>
+                    ) : null}
                   </div>
                   <div className="font-display italic" style={{ fontSize: 16 }}>
                     {g.map_slug ? prettyMap(g.map_slug) : "—"}
