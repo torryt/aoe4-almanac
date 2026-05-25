@@ -73,7 +73,10 @@ export function useSyncEvents(enabled: boolean): SyncProgress {
         ts: data.ts,
       });
       void qc.invalidateQueries({ queryKey: qk.syncStatus });
-      if (data.imported > 0) invalidateGameDataCache(qc);
+      // Always invalidate: even when no new games were imported, the most
+      // recent few rows may have been refreshed (e.g. result going from
+      // unknown→win once aoe4world finalized the game).
+      invalidateGameDataCache(qc);
     };
     const onError = (ev: MessageEvent): void => {
       const data = JSON.parse(ev.data) as SyncEvent;

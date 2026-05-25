@@ -12,6 +12,7 @@
     "build": "pnpm --filter \"./packages/*\" run build && pnpm --filter \"./apps/*\" run build",
     "start": "pnpm --filter ./apps/server run start",
     "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
     "lint": "oxlint",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",

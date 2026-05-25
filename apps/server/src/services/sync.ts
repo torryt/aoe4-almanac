@@ -3,7 +3,6 @@ import { db, sqlite } from "../db/client.ts";
 import { syncState, users } from "../db/schema.ts";
 import {
   getGamesPage,
-  getLastGame,
   getPlayer,
   type RawAoe4WorldGame,
 } from "./aoe4world.ts";
@@ -72,47 +71,25 @@ async function doRunSync(
     const state = readSyncState(userId);
     const lastSeenGameId = state.lastSeenGameId;
 
-    // Cheap peek for incremental syncs: 1 API call to /games/last. If the most
-    // recent game on aoe4world is one we've already imported, we're up to date
-    // and skip the page-by-page scan entirely.
-    if (!full && lastSeenGameId !== null) {
-      const last = await getLastGame(profileId);
-      if (last && last.game_id <= lastSeenGameId) {
-        upsertSyncState(userId, {
-          lastSuccessAt: Math.floor(Date.now() / 1000),
-          lastError: null,
-        });
-        const durationMs = performance.now() - startWallMs;
-        emitSync({
-          type: "sync.completed",
-          user_id: userId,
-          imported: 0,
-          last_seen_game_id: lastSeenGameId,
-          duration_ms: Math.round(durationMs),
-          ts: Math.floor(Date.now() / 1000),
-        });
-        log(
-          opts.reqId,
-          `sync.done user=${userId} imported=0 peek_only=1 duration_ms=${durationMs.toFixed(0)}`,
-        );
-        return;
-      }
-    }
-
     let page = 1;
     let importedThisRun = 0;
     let scannedThisRun = 0;
     let highestSeenGameId = lastSeenGameId ?? 0;
 
     // Scan newest-first (aoe4world default order is started_at desc). For an
-    // incremental sync, stop as soon as we encounter a game we've already
-    // imported — no need to walk the entire history.
+    // incremental sync, stop once we encounter a known game — but always
+    // re-ingest the most recent few first so late-arriving fields (final
+    // result, rating diff) get refreshed on rows we imported while the game
+    // was still ongoing.
+    const REFRESH_RECENT = 5;
     pageLoop: while (true) {
       const res = await getGamesPage(profileId, { page, limit: 50 });
       if (!res.games || res.games.length === 0) break;
       const pageStart = performance.now();
       for (const raw of res.games) {
-        if (!full && lastSeenGameId !== null && raw.game_id <= lastSeenGameId) {
+        const alreadySeen =
+          !full && lastSeenGameId !== null && raw.game_id <= lastSeenGameId;
+        if (alreadySeen && scannedThisRun >= REFRESH_RECENT) {
           break pageLoop;
         }
         const wasNew = ingestGame(userId, profileId, raw);
