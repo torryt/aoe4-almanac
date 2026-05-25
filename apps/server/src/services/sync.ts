@@ -70,17 +70,22 @@ async function doRunSync(
 
   try {
     const state = readSyncState(userId);
-    const since = full ? undefined : sinceFromState(state);
+    const updatedSince = full ? undefined : updatedSinceFromState(state);
 
     let page = 1;
     let importedThisRun = 0;
     let scannedThisRun = 0;
     let totalCount: number | null = null;
     let highestSeenGameId = state.lastSeenGameId ?? 0;
-    let shouldStop = false;
 
-    while (!shouldStop) {
-      const res = await getGamesPage(profileId, { since, page, limit: 50 });
+    while (true) {
+      const res = await getGamesPage(profileId, {
+        page,
+        limit: 50,
+        ...(updatedSince
+          ? { updatedSince, order: "updated_at" as const }
+          : {}),
+      });
       if (!res.games || res.games.length === 0) break;
       if (totalCount === null && typeof res.total_count === "number") {
         totalCount = res.total_count;
@@ -91,13 +96,6 @@ async function doRunSync(
         if (wasNew) importedThisRun += 1;
         scannedThisRun += 1;
         if (raw.game_id > highestSeenGameId) highestSeenGameId = raw.game_id;
-        if (
-          !full &&
-          state.lastSeenGameId !== null &&
-          raw.game_id <= state.lastSeenGameId
-        ) {
-          shouldStop = true;
-        }
       }
       const pageMs = performance.now() - pageStart;
       emitSync({
@@ -173,9 +171,11 @@ export async function pollLastAndSyncIfNew(userId: number): Promise<boolean> {
   return true;
 }
 
-function sinceFromState(state: ReturnType<typeof readSyncState>): string | undefined {
+function updatedSinceFromState(
+  state: ReturnType<typeof readSyncState>,
+): string | undefined {
   if (!state.lastSuccessAt) return undefined;
-  const cushion = 5 * 60; // 5 min
+  const cushion = 60; // 1 min — recommended for order=updated_at
   const ts = state.lastSuccessAt - cushion;
   return new Date(ts * 1000).toISOString();
 }

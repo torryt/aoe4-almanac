@@ -86,7 +86,7 @@ type RatingInfoCacheEntry = {
   data: unknown;
 };
 const ratingInfoCache = new Map<string, RatingInfoCacheEntry>();
-const RATING_INFO_TTL_MS = 60_000;
+const RATING_INFO_TTL_MS = 10 * 60_000;
 
 meRoutes.get("/rating-info", async (c) => {
   const userId = c.get("userId");

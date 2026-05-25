@@ -9,7 +9,7 @@ const envSchema = z.object({
   AOE4_ALMANAC_DB_PATH: z.string().optional(),
   AOE4_ALMANAC_USER_AGENT: z
     .string()
-    .default("aoe4-almanac/0.1 (local; +https://github.com/torry/aoe4-almanac)"),
+    .default("aoe4-almanac/0.1 (+https://github.com/torryt/aoe4-almanac)"),
   AOE4_ALMANAC_WEB_DIST: z.string().optional(),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });

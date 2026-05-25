@@ -209,6 +209,15 @@ export async function getPlayer(profileId: number): Promise<RawAoe4WorldFullPlay
   return withMutex(() => fetchJsonWithBackoff<RawAoe4WorldFullPlayer>(url));
 }
 
+// Leaderboard pages are global state — every user querying the same
+// (leaderboard, country, page) gets identical data. Cache across users so a
+// country-rank walk for one user warms the pages for all their countrymen.
+const LEADERBOARD_PAGE_TTL_MS = 10 * 60_000;
+const leaderboardPageCache = new Map<
+  string,
+  { at: number; data: RawLeaderboardResponse }
+>();
+
 export async function getLeaderboardPage(
   leaderboard: string,
   args: { country?: string; page?: number } = {},
@@ -218,7 +227,17 @@ export async function getLeaderboardPage(
   if (args.page) params.set("page", String(args.page));
   const qs = params.toString();
   const url = `${BASE}/leaderboards/${leaderboard}${qs ? `?${qs}` : ""}`;
-  return withMutex(() => fetchJsonWithBackoff<RawLeaderboardResponse>(url));
+
+  const key = `${leaderboard}|${args.country ?? ""}|${args.page ?? 1}`;
+  const hit = leaderboardPageCache.get(key);
+  if (hit && Date.now() - hit.at < LEADERBOARD_PAGE_TTL_MS) {
+    return hit.data;
+  }
+  const data = await withMutex(() =>
+    fetchJsonWithBackoff<RawLeaderboardResponse>(url),
+  );
+  leaderboardPageCache.set(key, { at: Date.now(), data });
+  return data;
 }
 
 export async function getLastGame(profileId: number): Promise<RawAoe4WorldGame | null> {
@@ -233,7 +252,9 @@ export async function getLastGame(profileId: number): Promise<RawAoe4WorldGame |
 
 export type GamesQueryArgs = {
   leaderboard?: string;
-  since?: string; // ISO
+  since?: string; // ISO; filters by started_at
+  updatedSince?: string; // ISO; filters by updated_at
+  order?: "started_at" | "updated_at";
   page?: number;
   limit?: number;
 };
@@ -245,6 +266,8 @@ export async function getGamesPage(
   const params = new URLSearchParams();
   if (args.leaderboard) params.set("leaderboard", args.leaderboard);
   if (args.since) params.set("since", args.since);
+  if (args.updatedSince) params.set("updated_since", args.updatedSince);
+  if (args.order) params.set("order", args.order);
   if (args.page) params.set("page", String(args.page));
   if (args.limit) params.set("limit", String(args.limit));
   const qs = params.toString();
