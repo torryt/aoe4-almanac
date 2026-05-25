@@ -20,10 +20,10 @@ export const users = sqliteTable(
     createdAt: integer("created_at").notNull().default(now),
     updatedAt: integer("updated_at").notNull().default(now),
   },
-  (t) => ({
-    slugUq: uniqueIndex("users_slug_uq").on(t.slug),
-    profileIdUq: uniqueIndex("users_profile_id_uq").on(t.aoe4worldProfileId),
-  }),
+  (t) => [
+    uniqueIndex("users_slug_uq").on(t.slug),
+    uniqueIndex("users_profile_id_uq").on(t.aoe4worldProfileId),
+  ],
 );
 
 export const userPreferences = sqliteTable("user_preferences", {
@@ -46,9 +46,7 @@ export const sessions = sqliteTable(
     expiresAt: integer("expires_at").notNull(),
     createdAt: integer("created_at").notNull().default(now),
   },
-  (t) => ({
-    userIdx: index("sessions_user_idx").on(t.userId),
-  }),
+  (t) => [index("sessions_user_idx").on(t.userId)],
 );
 
 export const civilizations = sqliteTable("civilizations", {
@@ -76,9 +74,7 @@ export const maps = sqliteTable(
     createdAt: integer("created_at").notNull().default(now),
     updatedAt: integer("updated_at").notNull().default(now),
   },
-  (t) => ({
-    slugUq: uniqueIndex("maps_slug_uq").on(t.slug),
-  }),
+  (t) => [uniqueIndex("maps_slug_uq").on(t.slug)],
 );
 
 export const games = sqliteTable(
@@ -109,15 +105,15 @@ export const games = sqliteTable(
     createdAt: integer("created_at").notNull().default(now),
     updatedAt: integer("updated_at").notNull().default(now),
   },
-  (t) => ({
+  (t) => [
     // Partial unique: only enforced when aoe4world_game_id is non-null.
-    aoe4worldUq: uniqueIndex("games_aoe4world_uq")
+    uniqueIndex("games_aoe4world_uq")
       .on(t.userId, t.aoe4worldGameId)
       .where(sql`${t.aoe4worldGameId} IS NOT NULL`),
-    userStartedIdx: index("games_user_started_idx").on(t.userId, t.startedAt),
-    userCivIdx: index("games_user_civ_idx").on(t.userId, t.myCivSlug),
-    userMapIdx: index("games_user_map_idx").on(t.userId, t.mapSlug),
-  }),
+    index("games_user_started_idx").on(t.userId, t.startedAt),
+    index("games_user_civ_idx").on(t.userId, t.myCivSlug),
+    index("games_user_map_idx").on(t.userId, t.mapSlug),
+  ],
 );
 
 export const gameParticipants = sqliteTable(
@@ -138,11 +134,11 @@ export const gameParticipants = sqliteTable(
     ratingDiff: integer("rating_diff"),
     mmr: integer("mmr"),
   },
-  (t) => ({
-    gameIdx: index("participants_game_idx").on(t.gameId),
-    civIdx: index("participants_civ_idx").on(t.civSlug),
-    profileIdx: index("participants_profile_idx").on(t.profileId),
-  }),
+  (t) => [
+    index("participants_game_idx").on(t.gameId),
+    index("participants_civ_idx").on(t.civSlug),
+    index("participants_profile_idx").on(t.profileId),
+  ],
 );
 
 export const civNotes = sqliteTable(
@@ -157,9 +153,7 @@ export const civNotes = sqliteTable(
     createdAt: integer("created_at").notNull().default(now),
     updatedAt: integer("updated_at").notNull().default(now),
   },
-  (t) => ({
-    userCivUq: uniqueIndex("civ_notes_user_civ_uq").on(t.userId, t.civSlug),
-  }),
+  (t) => [uniqueIndex("civ_notes_user_civ_uq").on(t.userId, t.civSlug)],
 );
 
 export const matchupNotes = sqliteTable(
@@ -175,14 +169,14 @@ export const matchupNotes = sqliteTable(
     createdAt: integer("created_at").notNull().default(now),
     updatedAt: integer("updated_at").notNull().default(now),
   },
-  (t) => ({
-    pairUq: uniqueIndex("matchup_notes_pair_uq").on(
+  (t) => [
+    uniqueIndex("matchup_notes_pair_uq").on(
       t.userId,
       t.myCivSlug,
       t.oppCivSlug,
     ),
-    userMyCivIdx: index("matchup_notes_user_mycivc_idx").on(t.userId, t.myCivSlug),
-  }),
+    index("matchup_notes_user_mycivc_idx").on(t.userId, t.myCivSlug),
+  ],
 );
 
 export const mapNotes = sqliteTable(
@@ -197,9 +191,7 @@ export const mapNotes = sqliteTable(
     createdAt: integer("created_at").notNull().default(now),
     updatedAt: integer("updated_at").notNull().default(now),
   },
-  (t) => ({
-    userMapUq: uniqueIndex("map_notes_user_map_uq").on(t.userId, t.mapSlug),
-  }),
+  (t) => [uniqueIndex("map_notes_user_map_uq").on(t.userId, t.mapSlug)],
 );
 
 export const gameNotes = sqliteTable(
@@ -216,9 +208,7 @@ export const gameNotes = sqliteTable(
     createdAt: integer("created_at").notNull().default(now),
     updatedAt: integer("updated_at").notNull().default(now),
   },
-  (t) => ({
-    userGameUq: uniqueIndex("game_notes_user_game_uq").on(t.userId, t.gameId),
-  }),
+  (t) => [uniqueIndex("game_notes_user_game_uq").on(t.userId, t.gameId)],
 );
 
 export const syncState = sqliteTable(
@@ -233,9 +223,7 @@ export const syncState = sqliteTable(
     lastSuccessAt: integer("last_success_at"),
     lastError: text("last_error"),
   },
-  (t) => ({
-    pk: primaryKey({ columns: [t.userId, t.leaderboard] }),
-  }),
+  (t) => [primaryKey({ columns: [t.userId, t.leaderboard] })],
 );
 
 export type UserRow = typeof users.$inferSelect;
