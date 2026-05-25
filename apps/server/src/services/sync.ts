@@ -70,28 +70,51 @@ async function doRunSync(
 
   try {
     const state = readSyncState(userId);
-    const updatedSince = full ? undefined : updatedSinceFromState(state);
+    const lastSeenGameId = state.lastSeenGameId;
+
+    // Cheap peek for incremental syncs: 1 API call to /games/last. If the most
+    // recent game on aoe4world is one we've already imported, we're up to date
+    // and skip the page-by-page scan entirely.
+    if (!full && lastSeenGameId !== null) {
+      const last = await getLastGame(profileId);
+      if (last && last.game_id <= lastSeenGameId) {
+        upsertSyncState(userId, {
+          lastSuccessAt: Math.floor(Date.now() / 1000),
+          lastError: null,
+        });
+        const durationMs = performance.now() - startWallMs;
+        emitSync({
+          type: "sync.completed",
+          user_id: userId,
+          imported: 0,
+          last_seen_game_id: lastSeenGameId,
+          duration_ms: Math.round(durationMs),
+          ts: Math.floor(Date.now() / 1000),
+        });
+        log(
+          opts.reqId,
+          `sync.done user=${userId} imported=0 peek_only=1 duration_ms=${durationMs.toFixed(0)}`,
+        );
+        return;
+      }
+    }
 
     let page = 1;
     let importedThisRun = 0;
     let scannedThisRun = 0;
-    let totalCount: number | null = null;
-    let highestSeenGameId = state.lastSeenGameId ?? 0;
+    let highestSeenGameId = lastSeenGameId ?? 0;
 
-    while (true) {
-      const res = await getGamesPage(profileId, {
-        page,
-        limit: 50,
-        ...(updatedSince
-          ? { updatedSince, order: "updated_at" as const }
-          : {}),
-      });
+    // Scan newest-first (aoe4world default order is started_at desc). For an
+    // incremental sync, stop as soon as we encounter a game we've already
+    // imported — no need to walk the entire history.
+    pageLoop: while (true) {
+      const res = await getGamesPage(profileId, { page, limit: 50 });
       if (!res.games || res.games.length === 0) break;
-      if (totalCount === null && typeof res.total_count === "number") {
-        totalCount = res.total_count;
-      }
       const pageStart = performance.now();
       for (const raw of res.games) {
+        if (!full && lastSeenGameId !== null && raw.game_id <= lastSeenGameId) {
+          break pageLoop;
+        }
         const wasNew = ingestGame(userId, profileId, raw);
         if (wasNew) importedThisRun += 1;
         scannedThisRun += 1;
@@ -105,7 +128,7 @@ async function doRunSync(
         games_in_page: res.games.length,
         imported_so_far: importedThisRun,
         scanned_so_far: scannedThisRun,
-        total_count: totalCount,
+        total_count: null,
         full,
         ts: Math.floor(Date.now() / 1000),
       });
@@ -148,36 +171,6 @@ async function doRunSync(
     log(opts.reqId, `sync.error user=${userId} msg=${msg}`);
     throw e;
   }
-}
-
-export async function pollLastAndSyncIfNew(userId: number): Promise<boolean> {
-  const profileRow = db()
-    .select({ profileId: users.aoe4worldProfileId })
-    .from(users)
-    .where(eq(users.id, userId))
-    .get();
-  const profileId = profileRow?.profileId ?? null;
-  if (!profileId) return false;
-
-  const state = readSyncState(userId);
-  const last = await getLastGame(profileId);
-  upsertSyncState(userId, { lastPolledAt: Math.floor(Date.now() / 1000) });
-
-  if (!last) return false;
-  if (state.lastSeenGameId !== null && last.game_id <= state.lastSeenGameId) {
-    return false;
-  }
-  await runSync(userId, false);
-  return true;
-}
-
-function updatedSinceFromState(
-  state: ReturnType<typeof readSyncState>,
-): string | undefined {
-  if (!state.lastSuccessAt) return undefined;
-  const cushion = 60; // 1 min — recommended for order=updated_at
-  const ts = state.lastSuccessAt - cushion;
-  return new Date(ts * 1000).toISOString();
 }
 
 function readSyncState(userId: number) {

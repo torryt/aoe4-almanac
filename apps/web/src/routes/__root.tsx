@@ -4,9 +4,16 @@ import {
   createRootRouteWithContext,
 } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TooltipProvider } from "../components/ui/index.ts";
-import { api, qk, type Me, type SyncStatus } from "../lib/api.ts";
+import {
+  api,
+  qk,
+  syncRun,
+  type Me,
+  type SyncStatus,
+} from "../lib/api.ts";
+import { useSyncEvents, type SyncProgress } from "../lib/syncEvents.ts";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: RootLayout,
@@ -70,6 +77,7 @@ function todayLine(): string {
 }
 
 function RootLayout() {
+  const qc = useQueryClient();
   const me = useQuery({ queryKey: qk.me, queryFn: () => api.get<Me>("/me") });
   const sync = useQuery({
     queryKey: qk.syncStatus,
@@ -77,20 +85,50 @@ function RootLayout() {
     refetchInterval: 15000,
   });
 
-  const lastSuccess = sync.data?.rows.reduce<number | null>(
-    (acc, r) => (r.last_success_at && (!acc || r.last_success_at > acc) ? r.last_success_at : acc),
-    null,
-  );
-  const tickerText = me.data?.aoe4world_profile_id
-    ? lastSuccess
-      ? `Reading from aoe4world · last sync ${relative(lastSuccess)} · ${me.data.display_name}`
-      : `Linked to aoe4world as ${me.data.display_name} · awaiting first sync`
-    : "No aoe4world profile linked — visit Settings to begin";
+  const linked = !!me.data?.aoe4world_profile_id;
+  const inFlight = sync.data?.in_flight ?? false;
+  const progress = useSyncEvents(linked);
+
+  // When the page mounts and sync is already running, the SSE hello gives us
+  // in_flight but no scanned/imported numbers until the next page event. Show
+  // a generic "syncing" state in the meantime via inFlight.
+  const lastError =
+    sync.data?.rows.find((r) => r.last_error)?.last_error ?? null;
+  const lastSuccess =
+    sync.data?.rows.reduce<number | null>(
+      (acc, r) =>
+        r.last_success_at && (!acc || r.last_success_at > acc)
+          ? r.last_success_at
+          : acc,
+      null,
+    ) ?? null;
+
+  const runMut = useMutation({
+    mutationFn: () => syncRun(false),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.syncStatus });
+    },
+  });
+
+  const tickerText = computeTickerText({
+    linked,
+    displayName: me.data?.display_name ?? null,
+    lastSuccess,
+    lastError,
+    inFlight,
+    progress,
+  });
 
   return (
     <TooltipProvider delayDuration={150}>
       <div className="relative z-10 mx-auto" style={{ maxWidth: 1320 }}>
-        <Masthead tickerText={tickerText} live={sync.data?.in_flight ?? false} />
+        <Masthead
+          tickerText={tickerText}
+          live={inFlight || progress.phase === "running"}
+          canSync={linked}
+          syncing={inFlight || runMut.isPending}
+          onSync={() => runMut.mutate()}
+        />
         <main>
           <Outlet />
         </main>
@@ -100,7 +138,54 @@ function RootLayout() {
   );
 }
 
-function Masthead({ tickerText, live }: { tickerText: string; live: boolean }) {
+function computeTickerText(args: {
+  linked: boolean;
+  displayName: string | null;
+  lastSuccess: number | null;
+  lastError: string | null;
+  inFlight: boolean;
+  progress: SyncProgress;
+}): string {
+  const { linked, displayName, lastSuccess, lastError, inFlight, progress } =
+    args;
+  if (!linked) return "No aoe4world profile linked — visit Settings to begin";
+
+  if (progress.phase === "running") {
+    return `Syncing · scanned ${progress.scanned} · imported ${progress.imported} new`;
+  }
+  if (inFlight) return "Syncing…";
+  if (progress.phase === "done") {
+    const noun = progress.imported === 1 ? "game" : "games";
+    if (progress.imported === 0) return "Already up to date · no new games";
+    return `Synced · ${progress.imported} new ${noun} imported`;
+  }
+  if (progress.phase === "error") {
+    return `Sync failed · ${truncate(progress.message, 80)}`;
+  }
+  const base = lastSuccess
+    ? `Reading from aoe4world · last sync ${relative(lastSuccess)} · ${displayName ?? ""}`
+    : `Linked to aoe4world as ${displayName ?? ""} · awaiting first sync`;
+  if (lastError) return `${base} · last error: ${truncate(lastError, 60)}`;
+  return base;
+}
+
+function truncate(s: string, n: number): string {
+  return s.length <= n ? s : s.slice(0, n - 1) + "…";
+}
+
+function Masthead({
+  tickerText,
+  live,
+  canSync,
+  syncing,
+  onSync,
+}: {
+  tickerText: string;
+  live: boolean;
+  canSync: boolean;
+  syncing: boolean;
+  onSync: () => void;
+}) {
   return (
     <header className="pt-12 pb-4 px-10">
       <div className="flex items-end justify-between">
@@ -163,8 +248,19 @@ function Masthead({ tickerText, live }: { tickerText: string; live: boolean }) {
       </nav>
 
       <div className="flex items-end justify-between pt-5">
-        <div className="ticker">
+        <div className="ticker flex items-center gap-3">
           <span className={live ? "live" : ""}>{tickerText}</span>
+          {canSync ? (
+            <button
+              type="button"
+              onClick={onSync}
+              disabled={syncing}
+              className="eyebrow-tight text-[#7a6a4a] hover:text-[#1c1c1a] underline-offset-2 cursor-pointer hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:no-underline"
+              title="Fetch latest games from aoe4world"
+            >
+              {syncing ? "syncing…" : "sync now"}
+            </button>
+          ) : null}
         </div>
         <div className="folio">page i</div>
       </div>

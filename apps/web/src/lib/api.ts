@@ -245,6 +245,10 @@ export type GameNoteBatchEntry = {
   updated_at: number;
 };
 
+export function syncRun(full = false): Promise<{ ok: true }> {
+  return api.post("/sync/run", { full });
+}
+
 export type SyncStatus = {
   rows: Array<{
     leaderboard: string;
