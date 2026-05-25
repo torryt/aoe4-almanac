@@ -203,6 +203,82 @@ function MatchupGrid() {
 
             {orderedCivs.length === 0 ? (
               <div className="kicker py-6">Loading civilisations…</div>
+            ) : my_civ ? (
+              (() => {
+                const myCiv =
+                  orderedCivs.find(
+                    (c) => c.slug === canonicalCivSlug(my_civ),
+                  ) ?? null;
+                if (!myCiv) return null;
+                return (
+                  <div>
+                    {orderedCivs.map((colCiv) => {
+                      const isMirror = myCiv.slug === colCiv.slug;
+                      const has = notesSet.has(
+                        `${myCiv.slug}|${colCiv.slug}`,
+                      );
+                      const stats = matrixByKey.get(
+                        `${myCiv.slug}|${colCiv.slug}`,
+                      );
+                      return (
+                        <Link
+                          key={colCiv.slug}
+                          to="/notes/matchups/$myCiv/$oppCiv"
+                          params={{
+                            myCiv: myCiv.slug,
+                            oppCiv: colCiv.slug,
+                          }}
+                          className={`matchup-row ${isMirror ? "diag" : ""}`}
+                        >
+                          <span
+                            className={`dot ${has ? "filled" : "hollow"}`}
+                          />
+                          <span
+                            className={`row-label ${colCiv.is_variant ? "variant" : ""} ${colCiv.slug === KNIGHTS_TEMPLAR ? "main" : ""}`}
+                            style={{
+                              textAlign: "left",
+                              paddingRight: 0,
+                              flex: 1,
+                            }}
+                          >
+                            {colCiv.name}
+                            {isMirror ? (
+                              <em
+                                className="kicker"
+                                style={{ marginLeft: 8, fontSize: 10 }}
+                              >
+                                mirror
+                              </em>
+                            ) : null}
+                          </span>
+                          {stats && stats.games > 0 ? (
+                            <span
+                              className="kicker"
+                              style={{ fontSize: 12, color: "#5b574e" }}
+                            >
+                              {stats.wins}W–{stats.losses}L
+                              {stats.draws > 0 ? `–${stats.draws}D` : ""}
+                              {stats.win_rate !== null && (
+                                <>
+                                  {" · "}
+                                  {Math.round(stats.win_rate * 100)}%
+                                </>
+                              )}
+                            </span>
+                          ) : (
+                            <span
+                              className="kicker"
+                              style={{ fontSize: 12, color: "#9b8f76" }}
+                            >
+                              no games
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                );
+              })()
             ) : (
               <div style={{ overflowX: "auto" }}>
                 <div>
@@ -229,12 +305,7 @@ function MatchupGrid() {
                   ))}
                 </div>
 
-                {(my_civ
-                  ? orderedCivs.filter(
-                      (c) => c.slug === canonicalCivSlug(my_civ),
-                    )
-                  : orderedCivs
-                ).map(
+                {orderedCivs.map(
                   (rowCiv) => (
                     <div
                       key={rowCiv.slug}
