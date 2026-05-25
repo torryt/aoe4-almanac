@@ -76,7 +76,9 @@ function GamesList() {
     enabled: gameIds.length > 0,
   });
   const notedGameIds = new Set<number>();
-  for (const n of gameNotesQ.data?.notes ?? []) notedGameIds.add(n.game_id);
+  for (const n of gameNotesQ.data?.notes ?? []) {
+    if (n.body_md.trim()) notedGameIds.add(n.game_id);
+  }
 
   function update(key: string, value: string | undefined): void {
     const next = { ...search, [key]: value || undefined } as Record<
