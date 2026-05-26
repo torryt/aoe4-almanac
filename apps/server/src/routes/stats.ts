@@ -166,6 +166,18 @@ statsRoutes.get("/recent", (c) => {
   const total = sqlite()
     .prepare(`SELECT COUNT(*) AS n FROM games WHERE user_id = ?`)
     .get(userId) as { n: number } | undefined;
+  const topCiv = sqlite()
+    .prepare(
+      `SELECT my_civ_slug AS slug, COUNT(*) AS n
+       FROM (
+         SELECT my_civ_slug FROM games
+         WHERE user_id = ? AND my_civ_slug IS NOT NULL
+         ORDER BY started_at DESC LIMIT 30
+       )
+       GROUP BY my_civ_slug
+       ORDER BY n DESC LIMIT 1`,
+    )
+    .get(userId) as { slug: string; n: number } | undefined;
   return c.json({
     recent,
     total_games: total?.n ?? 0,
@@ -175,5 +187,6 @@ statsRoutes.get("/recent", (c) => {
       losses: agg?.losses ?? 0,
       win_rate: games > 0 ? (agg?.wins ?? 0) / games : null,
     },
+    top_civ_slug: topCiv?.slug ?? null,
   });
 });

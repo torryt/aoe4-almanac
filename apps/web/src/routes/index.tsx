@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { KNIGHTS_TEMPLAR } from "@aoe4-almanac/shared";
+import { KNIGHTS_TEMPLAR, prettyCivName } from "@aoe4-almanac/shared";
 import {
   api,
   qk,
@@ -29,6 +29,7 @@ type RecentStats = {
     losses: number;
     win_rate: number | null;
   };
+  top_civ_slug: string | null;
 };
 
 function fmtDay(unix: number): string {
@@ -242,35 +243,10 @@ function Dashboard() {
             <hr className="rule-faint my-6" />
 
             <div className="eyebrow-tight pb-3">Quick passage</div>
-            <ul className="space-y-2 font-display text-[15px]">
-              <li>
-                <Link
-                  to="/notes/civs/$slug"
-                  params={{ slug: KNIGHTS_TEMPLAR }}
-                  className="hover:underline"
-                >
-                  → Templar general notes
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/notes/matchups"
-                  search={{ my_civ: KNIGHTS_TEMPLAR }}
-                  className="hover:underline"
-                >
-                  → Templar matchup table
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/games"
-                  search={{ civ: KNIGHTS_TEMPLAR }}
-                  className="hover:underline"
-                >
-                  → My Templar campaigns
-                </Link>
-              </li>
-            </ul>
+            <QuickPassage
+              civSlug={stats.data?.top_civ_slug ?? KNIGHTS_TEMPLAR}
+            />
+
 
             {progress.active && (
               <div className="mt-6 border-l-2 border-[#9b2b2b] pl-3">
@@ -1051,6 +1027,41 @@ function Bullet({ children }: { children: React.ReactNode }) {
       </span>
       <span style={{ lineHeight: 1.4 }}>{children}</span>
     </li>
+  );
+}
+
+function QuickPassage({ civSlug }: { civSlug: string }) {
+  const name = prettyCivName(civSlug);
+  return (
+    <ul className="space-y-2 font-display text-[15px]">
+      <li>
+        <Link
+          to="/notes/civs/$slug"
+          params={{ slug: civSlug }}
+          className="hover:underline"
+        >
+          → {name} general notes
+        </Link>
+      </li>
+      <li>
+        <Link
+          to="/notes/matchups"
+          search={{ my_civ: civSlug }}
+          className="hover:underline"
+        >
+          → {name} matchup table
+        </Link>
+      </li>
+      <li>
+        <Link
+          to="/games"
+          search={{ civ: civSlug }}
+          className="hover:underline"
+        >
+          → My {name} campaigns
+        </Link>
+      </li>
+    </ul>
   );
 }
 
