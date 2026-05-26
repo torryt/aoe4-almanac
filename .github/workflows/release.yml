@@ -1,59 +1,22 @@
 name: release
 
-# Builds Tauri installers for Windows, macOS, and Linux on every semver tag.
-# Trigger: push a tag matching `v*` (e.g. v0.1.0, v0.1.0-rc.1, v0.1.0-beta.2).
-# Pre-release tags (those containing a `-` like `v0.1.0-rc.1`) are published
-# as GitHub pre-releases; clean tags (v0.1.0) are published as stable.
+# Builds Tauri installers and attaches them to a GitHub Release.
+# Trigger: a release is published from github.com (Releases → Draft a new
+# release → Publish). The "This is a pre-release" checkbox in the UI flows
+# through automatically — installers are attached to the release as-is.
+#
+# Pick a tag like v0.1.0 (stable) or v0.1.0-rc.1 (pre-release) when drafting.
+# GitHub creates the tag on publish; this workflow builds binaries against
+# that tag and uploads them to the same release.
 on:
-  push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+-*"
+  release:
+    types: [published]
 
 permissions:
   contents: write
 
 jobs:
-  draft-release:
-    runs-on: ubuntu-latest
-    outputs:
-      release_id: ${{ steps.create.outputs.result }}
-      is_prerelease: ${{ steps.meta.outputs.is_prerelease }}
-      version: ${{ steps.meta.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: meta
-        name: Parse tag
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          VERSION="${TAG#v}"
-          if [[ "$VERSION" == *-* ]]; then
-            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-      - id: create
-        name: Create draft release
-        uses: actions/github-script@v7
-        with:
-          result-encoding: string
-          script: |
-            const tag = process.env.GITHUB_REF.replace('refs/tags/', '');
-            const isPre = '${{ steps.meta.outputs.is_prerelease }}' === 'true';
-            const res = await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: tag,
-              name: tag,
-              draft: true,
-              prerelease: isPre,
-              generate_release_notes: true,
-            });
-            return res.data.id.toString();
-
   build:
-    needs: draft-release
     strategy:
       fail-fast: false
       matrix:
@@ -70,6 +33,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # release events check out the default branch by default; we want
+          # the exact tag that was published.
+          ref: ${{ github.event.release.tag_name }}
 
       - name: Install Linux deps
         if: matrix.os == 'ubuntu-22.04'
@@ -108,9 +75,9 @@ jobs:
       - name: Sync version from tag
         shell: bash
         run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
           echo "Syncing version $VERSION into tauri.conf.json and Cargo.toml"
-          # tauri.conf.json
           node -e "
             const fs = require('fs');
             const p = 'src-tauri/tauri.conf.json';
@@ -118,7 +85,6 @@ jobs:
             j.version = process.env.VERSION;
             fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
           "
-          # Cargo.toml — only the top-level [package] version
           python3 - <<'PY'
           import os, re
           v = os.environ['VERSION']
@@ -130,7 +96,7 @@ jobs:
               f.write(src)
           PY
         env:
-          VERSION: ${{ needs.draft-release.outputs.version }}
+          VERSION: ${{ github.event.release.tag_name }}
 
       - name: Build web frontend
         run: pnpm --filter @aoe4-almanac/web build
@@ -140,20 +106,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          releaseId: ${{ needs.draft-release.outputs.release_id }}
+          releaseId: ${{ github.event.release.id }}
           args: --target ${{ matrix.target }}
-
-  publish-release:
-    needs: [draft-release, build]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Publish release
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: ${{ needs.draft-release.outputs.release_id }},
-              draft: false,
-            });
