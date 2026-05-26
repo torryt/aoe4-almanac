@@ -416,22 +416,6 @@ pub fn get_leaderboard_page(
     Ok(data)
 }
 
-pub fn get_last_game(profile_id: i64) -> AppResult<Option<RawAoe4WorldGame>> {
-    let url = format!("{BASE}/players/{profile_id}/games/last");
-    match with_mutex(|| fetch_json_with_backoff(&url)) {
-        Ok(v) => Ok(Some(
-            serde_json::from_value(v).map_err(|e| AppError::msg(format!("decode last: {e}")))?,
-        )),
-        Err(e) => {
-            if e.to_string().contains("aoe4world 404") {
-                Ok(None)
-            } else {
-                Err(e)
-            }
-        }
-    }
-}
-
 #[derive(Default, Clone)]
 pub struct GamesQueryArgs {
     pub leaderboard: Option<String>,

@@ -4,14 +4,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::RwLock;
 
 // Cached on first access; the seed never changes them at runtime so we just
-// load lazily and keep them in memory. Cleared via clear() when civs are reseeded.
+// load lazily and keep them in memory.
 static ALIASES: RwLock<Option<HashMap<String, String>>> = RwLock::new(None);
 static KNOWN: RwLock<Option<HashSet<String>>> = RwLock::new(None);
-
-pub fn clear_caches() {
-    *ALIASES.write().unwrap() = None;
-    *KNOWN.write().unwrap() = None;
-}
 
 fn load_aliases(conn: &Connection) -> AppResult<HashMap<String, String>> {
     let mut stmt = conn.prepare("SELECT alias, civ_slug FROM civ_slug_aliases")?;
