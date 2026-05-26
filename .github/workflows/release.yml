@@ -1,0 +1,159 @@
+name: release
+
+# Builds Tauri installers for Windows, macOS, and Linux on every semver tag.
+# Trigger: push a tag matching `v*` (e.g. v0.1.0, v0.1.0-rc.1, v0.1.0-beta.2).
+# Pre-release tags (those containing a `-` like `v0.1.0-rc.1`) are published
+# as GitHub pre-releases; clean tags (v0.1.0) are published as stable.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+
+permissions:
+  contents: write
+
+jobs:
+  draft-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create.outputs.result }}
+      is_prerelease: ${{ steps.meta.outputs.is_prerelease }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        name: Parse tag
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - id: create
+        name: Create draft release
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: |
+            const tag = process.env.GITHUB_REF.replace('refs/tags/', '');
+            const isPre = '${{ steps.meta.outputs.is_prerelease }}' === 'true';
+            const res = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+              name: tag,
+              draft: true,
+              prerelease: isPre,
+              generate_release_notes: true,
+            });
+            return res.data.id.toString();
+
+  build:
+    needs: draft-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-13
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux deps
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev \
+            patchelf
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync version from tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "Syncing version $VERSION into tauri.conf.json and Cargo.toml"
+          # tauri.conf.json
+          node -e "
+            const fs = require('fs');
+            const p = 'src-tauri/tauri.conf.json';
+            const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+            j.version = process.env.VERSION;
+            fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
+          "
+          # Cargo.toml — only the top-level [package] version
+          python3 - <<'PY'
+          import os, re
+          v = os.environ['VERSION']
+          path = 'src-tauri/Cargo.toml'
+          with open(path) as f:
+              src = f.read()
+          src = re.sub(r'(?m)^version = "[^"]*"', f'version = "{v}"', src, count=1)
+          with open(path, 'w') as f:
+              f.write(src)
+          PY
+        env:
+          VERSION: ${{ needs.draft-release.outputs.version }}
+
+      - name: Build web frontend
+        run: pnpm --filter @aoe4-almanac/web build
+
+      - name: Build Tauri app and upload installers
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          releaseId: ${{ needs.draft-release.outputs.release_id }}
+          args: --target ${{ matrix.target }}
+
+  publish-release:
+    needs: [draft-release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ needs.draft-release.outputs.release_id }},
+              draft: false,
+            });

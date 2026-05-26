@@ -19,7 +19,10 @@
     "db:generate": "pnpm --filter ./apps/server run db:generate",
     "db:migrate": "pnpm --filter ./apps/server run db:migrate",
     "db:seed": "pnpm --filter ./apps/server run db:seed",
-    "db:audit-civ-slugs": "pnpm --filter ./apps/server run db:audit-civ-slugs"
+    "db:audit-civ-slugs": "pnpm --filter ./apps/server run db:audit-civ-slugs",
+    "tauri": "cargo tauri",
+    "tauri:dev": "cargo tauri dev",
+    "tauri:build": "cargo tauri build"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

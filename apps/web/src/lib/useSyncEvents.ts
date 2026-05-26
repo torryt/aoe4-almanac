@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { eventBus } from "./transport/index.ts";
 
 export type SyncEvent =
   | {
@@ -75,8 +76,6 @@ export function useSyncEvents(): SyncProgress {
   const [state, setState] = useState<SyncProgress>(initial);
 
   useEffect(() => {
-    const es = new EventSource("/api/v1/sync/events");
-
     function applyEvent(e: SyncEvent): void {
       setState((prev) => {
         const next = { ...prev, last_event: e };
@@ -116,23 +115,7 @@ export function useSyncEvents(): SyncProgress {
       });
     }
 
-    for (const t of [
-      "link.player_fetched",
-      "sync.started",
-      "sync.page",
-      "sync.completed",
-      "sync.error",
-    ] as const) {
-      es.addEventListener(t, (ev) => {
-        try {
-          applyEvent(JSON.parse((ev as MessageEvent).data) as SyncEvent);
-        } catch {
-          // ignore malformed
-        }
-      });
-    }
-
-    return () => es.close();
+    return eventBus.subscribeSync((ev) => applyEvent(ev as SyncEvent));
   }, []);
 
   return state;
