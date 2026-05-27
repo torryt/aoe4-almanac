@@ -47,7 +47,7 @@ body {
   justify-content: space-between;
   background: #f1ece4;
   border-bottom: 1px solid rgba(122, 106, 74, 0.18);
-  z-index: 100;
+  z-index: 250;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -85,6 +85,28 @@ body {
 .has-titlebar #root {
   padding-top: 32px;
 }
+
+/* Invisible resize handles around the window edges. Sit above content but
+   below the titlebar buttons so min/max/close stay clickable. Corner
+   handles overlay edge handles to give the right cursor at corners. */
+.resize-edges {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 300;
+}
+.resize-edge {
+  position: absolute;
+  pointer-events: auto;
+}
+.resize-n  { top: 0;        left: 6px;   right: 6px;  height: 4px; cursor: n-resize; }
+.resize-s  { bottom: 0;     left: 6px;   right: 6px;  height: 4px; cursor: s-resize; }
+.resize-e  { top: 6px;      bottom: 6px; right: 0;    width: 4px;  cursor: e-resize; }
+.resize-w  { top: 6px;      bottom: 6px; left: 0;     width: 4px;  cursor: w-resize; }
+.resize-nw { top: 0;        left: 0;     width: 8px;  height: 8px; cursor: nw-resize; }
+.resize-ne { top: 0;        right: 0;    width: 8px;  height: 8px; cursor: ne-resize; }
+.resize-sw { bottom: 0;     left: 0;     width: 8px;  height: 8px; cursor: sw-resize; }
+.resize-se { bottom: 0;     right: 0;    width: 8px;  height: 8px; cursor: se-resize; }
 
 * {
   font-variant-numeric: tabular-nums;

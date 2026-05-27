@@ -3,6 +3,45 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
+type ResizeDir =
+  | "North"
+  | "South"
+  | "East"
+  | "West"
+  | "NorthEast"
+  | "NorthWest"
+  | "SouthEast"
+  | "SouthWest";
+
+const RESIZE_DIRS: Array<{ cls: string; dir: ResizeDir }> = [
+  { cls: "resize-n", dir: "North" },
+  { cls: "resize-s", dir: "South" },
+  { cls: "resize-e", dir: "East" },
+  { cls: "resize-w", dir: "West" },
+  { cls: "resize-ne", dir: "NorthEast" },
+  { cls: "resize-nw", dir: "NorthWest" },
+  { cls: "resize-se", dir: "SouthEast" },
+  { cls: "resize-sw", dir: "SouthWest" },
+];
+
+function ResizeEdges() {
+  const win = getCurrentWindow();
+  return (
+    <div className="resize-edges" aria-hidden>
+      {RESIZE_DIRS.map(({ cls, dir }) => (
+        <div
+          key={dir}
+          className={`resize-edge ${cls}`}
+          onMouseDown={(e) => {
+            if (e.button !== 0) return;
+            void win.startResizeDragging(dir);
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function Titlebar() {
   const [maximized, setMaximized] = useState(false);
 
@@ -25,6 +64,8 @@ export function Titlebar() {
 
   const win = getCurrentWindow();
   return (
+    <>
+    <ResizeEdges />
     <div className="titlebar" data-tauri-drag-region>
       <div className="titlebar-title" data-tauri-drag-region>
         AOE4 Almanac
@@ -69,5 +110,6 @@ export function Titlebar() {
         </button>
       </div>
     </div>
+    </>
   );
 }
