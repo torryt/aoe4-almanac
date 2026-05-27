@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "aoe4-almanac",
+  "productName": "AOE4 Almanac",
   "version": "0.1.0",
   "identifier": "com.torryt.aoe4-almanac",
   "build": {
@@ -12,11 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "aoe4-almanac",
+        "title": "AOE4 Almanac",
         "width": 1280,
         "height": 800,
         "minWidth": 900,
-        "minHeight": 600
+        "minHeight": 600,
+        "decorations": false,
+        "backgroundColor": "#f1ece4"
       }
     ],
     "security": {

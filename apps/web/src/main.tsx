@@ -6,6 +6,10 @@ import { routeTree } from "./routeTree.gen.ts";
 import { queryClient } from "./query.ts";
 import "./styles.css";
 
+if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+  document.documentElement.classList.add("has-titlebar");
+}
+
 const router = createRouter({
   routeTree,
   context: { queryClient },

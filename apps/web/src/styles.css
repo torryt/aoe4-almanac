@@ -33,6 +33,59 @@ body {
   font-feature-settings: "ss01", "cv11", "ss03";
 }
 
+/* Custom titlebar (Tauri, decorations: false) — blends with parchment.
+   Fixed at top, height matches a typical OS bar. The masthead pushes
+   itself below via body padding. */
+.titlebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f1ece4;
+  border-bottom: 1px solid rgba(122, 106, 74, 0.18);
+  z-index: 100;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.titlebar-title {
+  padding-left: 14px;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: #7a6a4a;
+}
+.titlebar-controls {
+  display: flex;
+  height: 100%;
+}
+.titlebar-btn {
+  width: 46px;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  color: #5b574e;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.titlebar-btn:hover {
+  background: rgba(28, 28, 26, 0.06);
+  color: #1c1c1a;
+}
+.titlebar-btn-close:hover {
+  background: #9b2b2b;
+  color: #f1ece4;
+}
+.has-titlebar #root {
+  padding-top: 32px;
+}
+
 * {
   font-variant-numeric: tabular-nums;
 }
