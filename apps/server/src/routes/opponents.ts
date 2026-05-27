@@ -43,7 +43,9 @@ opponentsRoutes.get("/", zValidator("query", querySchema), (c) => {
          SUM(CASE WHEN g.my_result = 'draw' THEN 1 ELSE 0 END) AS draws,
          MAX(g.started_at) AS last_played_at
        FROM games g
-       JOIN game_participants p ON p.game_id = g.id AND p.is_self = 0
+       JOIN game_participants p ON p.game_id = g.id
+         AND p.is_self = 0
+         AND (g.my_team IS NULL OR p.team != g.my_team)
        WHERE g.user_id = ? ${searchClause}
        GROUP BY key
        ORDER BY ${orderBy}
@@ -100,8 +102,8 @@ opponentsRoutes.get("/:key", (c) => {
   // We always require is_self = 0 to scope to opponent rows.
   const matchClause =
     profileId !== null
-      ? "p.is_self = 0 AND p.profile_id = ?"
-      : "p.is_self = 0 AND p.profile_id IS NULL AND p.name = ?";
+      ? "p.is_self = 0 AND (g.my_team IS NULL OR p.team != g.my_team) AND p.profile_id = ?"
+      : "p.is_self = 0 AND (g.my_team IS NULL OR p.team != g.my_team) AND p.profile_id IS NULL AND p.name = ?";
   const matchValue: unknown = profileId !== null ? profileId : name;
 
   const summary = sqlite()

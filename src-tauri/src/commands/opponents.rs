@@ -73,7 +73,9 @@ pub fn opponents_list(
            SUM(CASE WHEN g.my_result = 'draw' THEN 1 ELSE 0 END),
            MAX(g.started_at) AS last_played_at
          FROM games g
-         JOIN game_participants p ON p.game_id = g.id AND p.is_self = 0
+         JOIN game_participants p ON p.game_id = g.id
+           AND p.is_self = 0
+           AND (g.my_team IS NULL OR p.team != g.my_team)
          WHERE g.user_id = ? {}
          GROUP BY key
          ORDER BY {}
@@ -123,9 +125,9 @@ pub fn opponents_get(state: State<'_, Db>, key: String) -> AppResult<serde_json:
     }
 
     let match_clause = if profile_id.is_some() {
-        "p.is_self = 0 AND p.profile_id = ?"
+        "p.is_self = 0 AND (g.my_team IS NULL OR p.team != g.my_team) AND p.profile_id = ?"
     } else {
-        "p.is_self = 0 AND p.profile_id IS NULL AND p.name = ?"
+        "p.is_self = 0 AND (g.my_team IS NULL OR p.team != g.my_team) AND p.profile_id IS NULL AND p.name = ?"
     };
     let match_value: Box<dyn ToSql> = match (&profile_id, &name) {
         (Some(p), _) => Box::new(*p),
