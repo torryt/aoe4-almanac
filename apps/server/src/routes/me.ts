@@ -14,9 +14,10 @@ import {
   getPlayer,
 } from "../services/aoe4world.ts";
 import {
-  countUserGameData,
+  countAllUserData,
   linkProfileAndBackfill,
   runSync,
+  wipeAllUserData,
   wipeUserGameData,
 } from "../services/sync.ts";
 
@@ -53,7 +54,7 @@ meRoutes.post(
 
 meRoutes.get("/data-counts", (c) => {
   const userId = c.get("userId");
-  const counts = countUserGameData(userId);
+  const counts = countAllUserData(userId);
   const row = db()
     .select({ profileId: users.aoe4worldProfileId })
     .from(users)
@@ -63,6 +64,22 @@ meRoutes.get("/data-counts", (c) => {
     current_profile_id: row?.profileId ?? null,
     ...counts,
   });
+});
+
+meRoutes.delete("/data", (c) => {
+  const userId = c.get("userId");
+  const reqId = c.get("reqId");
+  const wiped = wipeAllUserData(userId);
+  db()
+    .update(users)
+    .set({ aoe4worldProfileId: null, updatedAt: sql`(unixepoch())` })
+    .where(eq(users.id, userId))
+    .run();
+  log(
+    reqId,
+    `wipe-all user=${userId} games=${wiped.games} game_notes=${wiped.game_notes} civ_notes=${wiped.civ_notes} matchup_notes=${wiped.matchup_notes} map_notes=${wiped.map_notes} sync_rows=${wiped.sync_state_rows}`,
+  );
+  return c.json({ ok: true, wiped });
 });
 
 meRoutes.delete("/link-aoe4world", (c) => {

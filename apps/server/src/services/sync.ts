@@ -379,20 +379,45 @@ export type UserDataCounts = {
   sync_state_rows: number;
 };
 
+export type UserAllDataCounts = UserDataCounts & {
+  civ_notes: number;
+  matchup_notes: number;
+  map_notes: number;
+};
+
+function countOne(sqlText: string, userId: number): number {
+  return (sqlite().prepare(sqlText).get(userId) as { c: number }).c;
+}
+
 export function countUserGameData(userId: number): UserDataCounts {
-  const games = sqlite()
-    .prepare("SELECT COUNT(*) AS c FROM games WHERE user_id = ?")
-    .get(userId) as { c: number };
-  const gameNotes = sqlite()
-    .prepare("SELECT COUNT(*) AS c FROM game_notes WHERE user_id = ?")
-    .get(userId) as { c: number };
-  const syncRows = sqlite()
-    .prepare("SELECT COUNT(*) AS c FROM sync_state WHERE user_id = ?")
-    .get(userId) as { c: number };
   return {
-    games: games.c,
-    game_notes: gameNotes.c,
-    sync_state_rows: syncRows.c,
+    games: countOne("SELECT COUNT(*) AS c FROM games WHERE user_id = ?", userId),
+    game_notes: countOne(
+      "SELECT COUNT(*) AS c FROM game_notes WHERE user_id = ?",
+      userId,
+    ),
+    sync_state_rows: countOne(
+      "SELECT COUNT(*) AS c FROM sync_state WHERE user_id = ?",
+      userId,
+    ),
+  };
+}
+
+export function countAllUserData(userId: number): UserAllDataCounts {
+  return {
+    ...countUserGameData(userId),
+    civ_notes: countOne(
+      "SELECT COUNT(*) AS c FROM civ_notes WHERE user_id = ?",
+      userId,
+    ),
+    matchup_notes: countOne(
+      "SELECT COUNT(*) AS c FROM matchup_notes WHERE user_id = ?",
+      userId,
+    ),
+    map_notes: countOne(
+      "SELECT COUNT(*) AS c FROM map_notes WHERE user_id = ?",
+      userId,
+    ),
   };
 }
 
@@ -402,6 +427,18 @@ export function wipeUserGameData(userId: number): UserDataCounts {
     // game_participants and game_notes cascade via FK ON DELETE CASCADE.
     sqlite().prepare("DELETE FROM games WHERE user_id = ?").run(userId);
     sqlite().prepare("DELETE FROM sync_state WHERE user_id = ?").run(userId);
+  })();
+  return before;
+}
+
+export function wipeAllUserData(userId: number): UserAllDataCounts {
+  const before = countAllUserData(userId);
+  sqlite().transaction(() => {
+    sqlite().prepare("DELETE FROM games WHERE user_id = ?").run(userId);
+    sqlite().prepare("DELETE FROM sync_state WHERE user_id = ?").run(userId);
+    sqlite().prepare("DELETE FROM civ_notes WHERE user_id = ?").run(userId);
+    sqlite().prepare("DELETE FROM matchup_notes WHERE user_id = ?").run(userId);
+    sqlite().prepare("DELETE FROM map_notes WHERE user_id = ?").run(userId);
   })();
   return before;
 }

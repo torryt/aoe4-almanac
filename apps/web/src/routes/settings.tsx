@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   api,
+  clearAllUserDataCache,
   clearGameDataCache,
   invalidateGameDataCache,
   qk,
@@ -81,10 +82,19 @@ function Settings() {
   });
 
   const [unlinkOpen, setUnlinkOpen] = useState(false);
+  const [wipeAllOpen, setWipeAllOpen] = useState(false);
   const dataCounts = useQuery({
     queryKey: qk.dataCounts,
     queryFn: () => api.get<DataCounts>("/me/data-counts"),
-    enabled: !!me.data?.aoe4world_profile_id,
+  });
+
+  const wipeAllMut = useMutation({
+    mutationFn: () => api.delete<{ ok: true }>("/me/data"),
+    onSuccess: () => {
+      clearAllUserDataCache(qc);
+      void qc.invalidateQueries({ queryKey: qk.dataCounts });
+      void qc.invalidateQueries({ queryKey: qk.me });
+    },
   });
 
   const syncMut = useMutation({
@@ -363,8 +373,42 @@ function Settings() {
               </div>
             )}
           </div>
+
+          <div>
+            <div className="flex items-center gap-4 pb-4">
+              <span className="eyebrow" style={{ color: "#7a1f1f" }}>
+                Danger Zone
+              </span>
+              <hr className="rule-faint flex-1" />
+            </div>
+            <p className="kicker italic text-[#5b574e] pb-4">
+              Wipe every record bound to your Almanac — imported games,
+              sync history, every note (civ, matchup, map, and per-game), and
+              the aoe4world profile binding. Preferences remain intact.
+            </p>
+            <Button
+              variant="warning"
+              onClick={() => setWipeAllOpen(true)}
+              disabled={wipeAllMut.isPending}
+            >
+              {wipeAllMut.isPending && <Spinner size={12} />}
+              Delete all data
+            </Button>
+          </div>
         </div>
       </div>
+
+      <WipeAllConfirmDialog
+        open={wipeAllOpen}
+        onOpenChange={setWipeAllOpen}
+        counts={dataCounts.data}
+        pending={wipeAllMut.isPending}
+        onConfirm={() => {
+          wipeAllMut.mutate(undefined, {
+            onSuccess: () => setWipeAllOpen(false),
+          });
+        }}
+      />
 
       <UnlinkConfirmDialog
         open={unlinkOpen}
@@ -463,6 +507,84 @@ function UnlinkConfirmDialog({
           >
             {pending && <Spinner size={12} />}
             Unlink &amp; delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function WipeAllConfirmDialog({
+  open,
+  onOpenChange,
+  counts,
+  pending,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  counts: DataCounts | undefined;
+  pending: boolean;
+  onConfirm: () => void;
+}) {
+  const games = counts?.games ?? 0;
+  const gameNotes = counts?.game_notes ?? 0;
+  const civNotes = counts?.civ_notes ?? 0;
+  const matchupNotes = counts?.matchup_notes ?? 0;
+  const mapNotes = counts?.map_notes ?? 0;
+  const totalNotes = gameNotes + civNotes + matchupNotes + mapNotes;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Burn the Almanac?</DialogTitle>
+          <DialogDescription>
+            This wipes every record bound to your Almanac — imported games,
+            sync history, every note, and the aoe4world profile binding. The
+            deletion is permanent and cannot be undone from here. Preferences
+            remain.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="border-l-2 border-[#9b2b2b] bg-[rgba(155,43,43,0.05)] px-4 py-3">
+          <p className="eyebrow-tight pb-2" style={{ color: "#7a1f1f" }}>
+            Will be deleted
+          </p>
+          <dl className="stat-block">
+            <dt>Imported games</dt>
+            <dd className="font-display font-semibold">{games}</dd>
+            <dt>Civ notes</dt>
+            <dd className="font-display font-semibold">{civNotes}</dd>
+            <dt>Matchup notes</dt>
+            <dd className="font-display font-semibold">{matchupNotes}</dd>
+            <dt>Map notes</dt>
+            <dd className="font-display font-semibold">{mapNotes}</dd>
+            <dt>Per-game notes</dt>
+            <dd className="font-display font-semibold">{gameNotes}</dd>
+            <dt>Sync history</dt>
+            <dd className="font-display font-semibold">
+              {counts?.sync_state_rows ?? 0} row
+              {counts?.sync_state_rows === 1 ? "" : "s"}
+            </dd>
+          </dl>
+          {totalNotes === 0 && games === 0 && (
+            <p className="kicker pt-3 italic text-[#5b574e]">
+              The Almanac is already empty.
+            </p>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            disabled={pending}
+          >
+            Cancel
+          </Button>
+          <Button variant="warning" onClick={onConfirm} disabled={pending}>
+            {pending && <Spinner size={12} />}
+            Delete everything
           </Button>
         </DialogFooter>
       </DialogContent>

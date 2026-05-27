@@ -68,11 +68,21 @@ export function invalidateGameDataCache(qc: QueryClient): void {
   }
 }
 
+// Used by the "wipe all data" flow — drops every cache derived from user data,
+// including civ/matchup/map notes which are otherwise preserved across re-link.
+export function clearAllUserDataCache(qc: QueryClient): void {
+  clearGameDataCache(qc);
+  qc.removeQueries({ queryKey: ["notes"] });
+}
+
 export type DataCounts = {
   current_profile_id: number | null;
   games: number;
   game_notes: number;
   sync_state_rows: number;
+  civ_notes: number;
+  matchup_notes: number;
+  map_notes: number;
 };
 
 export type Opponent = {
