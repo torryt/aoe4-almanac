@@ -4,10 +4,10 @@ name: release
 # Trigger: a release is published from github.com (Releases → Draft a new
 # release → Publish).
 #
-# Only plain semver tags like v0.1.0 are supported — pre-release tags such
-# as v0.1.0-rc.1 are rejected, because the Windows MSI bundler does not
-# accept non-numeric pre-release identifiers and stripping them would make
-# multiple rc builds collide on the same installer version.
+# Only plain semver tags like 0.1.0 (optionally v-prefixed) are supported —
+# pre-release tags such as 0.1.0-rc.1 are rejected, because the Windows MSI
+# bundler does not accept non-numeric pre-release identifiers and stripping
+# them would make multiple rc builds collide on the same installer version.
 on:
   release:
     types: [published]
@@ -36,8 +36,8 @@ jobs:
         shell: bash
         run: |
           TAG="${{ github.event.release.tag_name }}"
-          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Tag '$TAG' is not a plain semver tag (vMAJOR.MINOR.PATCH). Pre-release tags are not supported."
+          if [[ ! "$TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$TAG' is not a plain semver tag (MAJOR.MINOR.PATCH, optionally v-prefixed). Pre-release tags are not supported."
             exit 1
           fi
 
@@ -86,6 +86,7 @@ jobs:
         run: |
           TAG="${{ github.event.release.tag_name }}"
           VERSION="${TAG#v}"
+          export VERSION
           echo "Syncing version $VERSION into tauri.conf.json and Cargo.toml"
           node -e "
             const fs = require('fs');
@@ -104,8 +105,6 @@ jobs:
           with open(path, 'w') as f:
               f.write(src)
           PY
-        env:
-          VERSION: ${{ github.event.release.tag_name }}
 
       - name: Build web frontend
         run: pnpm --filter @aoe4-almanac/web build
