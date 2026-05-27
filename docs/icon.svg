@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a83232"/>
+      <stop offset="1" stop-color="#7a1f1f"/>
+    </linearGradient>
+    <linearGradient id="blade" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6f1e6"/>
+      <stop offset="0.5" stop-color="#d8d2c3"/>
+      <stop offset="1" stop-color="#a8a294"/>
+    </linearGradient>
+    <linearGradient id="bladeEdge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#bfb9aa"/>
+      <stop offset="0.5" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#8a8478"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c9a55a"/>
+      <stop offset="0.5" stop-color="#a4863e"/>
+      <stop offset="1" stop-color="#6f5829"/>
+    </linearGradient>
+    <symbol id="sword" overflow="visible">
+      <polygon points="0,-360 36,-320 30,80 -30,80 -36,-320" fill="url(#blade)"/>
+      <polygon points="0,-360 36,-320 30,80 -30,80 -36,-320" fill="none" stroke="#2a1810" stroke-width="3" opacity="0.55"/>
+      <rect x="-4" y="-320" width="8" height="395" fill="url(#bladeEdge)" opacity="0.95"/>
+      <rect x="-140" y="80" width="280" height="34" rx="6" fill="url(#gold)"/>
+      <circle cx="-140" cy="97" r="18" fill="url(#gold)"/>
+      <circle cx="140" cy="97" r="18" fill="url(#gold)"/>
+      <rect x="-18" y="114" width="36" height="150" rx="8" fill="#2a1810"/>
+      <circle cx="0" cy="280" r="28" fill="url(#gold)"/>
+    </symbol>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="180" ry="180" fill="url(#bg)"/>
+  <rect x="36" y="36" width="952" height="952" rx="156" ry="156" fill="none" stroke="url(#gold)" stroke-width="8" opacity="0.8"/>
+  <g transform="translate(512 512) scale(1.28)">
+    <g transform="rotate(40)"><use href="#sword"/></g>
+    <g transform="rotate(-40)"><use href="#sword"/></g>
+  </g>
+</svg>

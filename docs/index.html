@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AOE4 Almanac — A campaign journal for Age of Empires IV</title>
+<meta name="description" content="A local-first desktop almanac for keeping a careful record of your Age of Empires IV career. Auto-imports ranked games from aoe4world; custom games entered by hand; notes hang off civs, matchups, maps, and individual games." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="icon" type="image/svg+xml" href="./icon.svg" />
+
+<style>
+  :root {
+    --paper: #f1ece4;
+    --paper-raised: #e8e1d4;
+    --paper-deep: #ddd5c4;
+    --ink: #1c1c1a;
+    --graphite: #5b574e;
+    --red: #9b2b2b;
+    --red-deep: #7a1f1f;
+    --gold: #7a6a4a;
+    --gold-pale: #b8a87f;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Inter Tight", system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11", "ss03";
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Paper tooth & vignette — same recipe as the app */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 1;
+    opacity: 0.5; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.11  0 0 0 0 0.10  0 0 0 0 0.09  0 0 0 0.055 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 2;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(28,28,26,0.05) 100%);
+  }
+  main, header, footer { position: relative; z-index: 3; }
+
+  * { font-variant-numeric: tabular-nums; }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 32px; }
+
+  /* Masthead */
+  header.masthead { padding: 56px 0 0; }
+  .masthead-top {
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(28,28,26,0.6);
+    border-top: 1px solid rgba(28,28,26,0.6);
+    padding: 10px 0; margin-bottom: 28px;
+  }
+  .eyebrow {
+    font-family: "Inter Tight", sans-serif;
+    font-size: 10px; line-height: 1;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    font-weight: 500; color: var(--graphite);
+  }
+  .folio {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic; font-size: 12px;
+    color: var(--gold); letter-spacing: 0.08em;
+  }
+  .masthead-right {
+    display: inline-flex; align-items: center; gap: 22px;
+  }
+  .masthead-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: "Inter Tight", sans-serif;
+    font-size: 10px; letter-spacing: 0.28em;
+    text-transform: uppercase; font-weight: 600;
+    color: var(--graphite);
+    text-decoration: none;
+    transition: color 120ms ease;
+  }
+  .masthead-link:hover { color: var(--ink); }
+  .masthead-link svg { color: var(--graphite); transition: color 120ms ease; }
+  .masthead-link:hover svg { color: var(--ink); }
+
+  .title-row { display: flex; align-items: center; gap: 28px; }
+  .title-row .mark { width: 88px; height: 88px; flex: 0 0 auto; }
+  h1.title {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(56px, 9vw, 112px);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: var(--ink);
+  }
+  h1.title .amp { color: var(--red); font-style: italic; font-weight: 500; }
+
+  .kicker {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-size: clamp(18px, 2.2vw, 22px);
+    color: var(--graphite);
+    margin: 18px 0 0;
+    max-width: 56ch;
+  }
+
+  hr.rule { border: 0; border-top: 1px solid rgba(28,28,26,0.18); margin: 36px 0; }
+  hr.rule-gold { border: 0; border-top: 1px solid var(--gold); margin: 28px 0; }
+  hr.rule-thick { border: 0; border-top: 2px solid var(--ink); margin: 36px 0 24px; }
+
+  .ornament {
+    text-align: center;
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    color: var(--gold);
+    letter-spacing: 0.6em;
+    font-size: 13px;
+    margin: 44px 0;
+  }
+
+  /* Intro spread */
+  .spread { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin: 36px 0; }
+  @media (max-width: 760px) { .spread { grid-template-columns: 1fr; gap: 24px; } }
+
+  .dropcap {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 18px; line-height: 1.55;
+    color: var(--ink);
+  }
+  .dropcap::first-letter {
+    font-weight: 700; float: left;
+    font-size: 64px; line-height: 0.85;
+    padding: 6px 10px 0 0;
+  }
+  .dropcap p { margin: 0 0 0.85em; }
+  .dropcap em { font-style: italic; }
+
+  .pull-quote {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-size: 22px; line-height: 1.4;
+    color: var(--ink);
+    border-left: 2px solid var(--red);
+    padding-left: 18px;
+    margin: 0;
+  }
+
+  /* Latest edition panel */
+  .edition {
+    background: var(--paper-raised);
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid rgba(28,28,26,0.18);
+    padding: 28px 32px 32px;
+    position: relative;
+    margin: 40px 0;
+  }
+  .edition .corner {
+    position: absolute; top: 10px; right: 18px;
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic; font-size: 12px;
+    color: var(--gold);
+  }
+  .edition-head {
+    display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+  .edition-head h2 {
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 600; font-size: 32px; margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .edition-head .version {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic; color: var(--red); font-size: 22px;
+  }
+  .edition-head .date {
+    font-family: "Inter Tight", sans-serif;
+    font-size: 11px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--graphite);
+  }
+
+  /* Primary download — single wax-seal button for the detected OS */
+  .primary-download {
+    display: flex; flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    text-decoration: none;
+    background: var(--red); color: var(--paper);
+    border: 1px solid var(--red-deep);
+    padding: 22px 28px;
+    transition: background 120ms ease;
+    max-width: 460px;
+  }
+  .primary-download:hover { background: var(--red-deep); }
+  .primary-download .label {
+    font-family: "Inter Tight", sans-serif;
+    font-size: 10px; letter-spacing: 0.28em;
+    text-transform: uppercase; font-weight: 600;
+    opacity: 0.8;
+  }
+  .primary-download .platform {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 30px; font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+  .primary-download .filename {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-size: 14px;
+    opacity: 0.85;
+    margin-top: 2px;
+  }
+  .primary-download .size {
+    font-family: "Inter Tight", sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(241,236,228,0.75);
+    margin-top: 6px;
+  }
+  .primary-download.unknown {
+    background: var(--paper);
+    color: var(--ink);
+    border-color: rgba(28,28,26,0.3);
+  }
+  .primary-download.unknown:hover { border-color: var(--ink); background: #ebe5d8; }
+  .primary-download.unknown .size { color: var(--graphite); }
+
+  /* Expandable "all platforms" */
+  details.all-platforms {
+    margin-top: 22px;
+    border-top: 1px solid rgba(28,28,26,0.18);
+    padding-top: 16px;
+  }
+  details.all-platforms > summary {
+    list-style: none;
+    cursor: pointer;
+    font-family: "Inter Tight", sans-serif;
+    font-size: 11px; letter-spacing: 0.22em;
+    text-transform: uppercase; font-weight: 600;
+    color: var(--graphite);
+    display: inline-flex; align-items: center; gap: 8px;
+    user-select: none;
+  }
+  details.all-platforms > summary::-webkit-details-marker { display: none; }
+  details.all-platforms > summary::after {
+    content: "+";
+    font-family: "Cormorant Garamond", serif;
+    font-size: 18px; font-weight: 500;
+    color: var(--gold);
+    transition: transform 120ms ease;
+  }
+  details.all-platforms[open] > summary::after { content: "−"; }
+  details.all-platforms > summary:hover { color: var(--ink); }
+
+  .platform-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .dl {
+    display: flex; flex-direction: column;
+    text-decoration: none; color: var(--ink);
+    background: var(--paper);
+    border: 1px solid rgba(28,28,26,0.18);
+    padding: 12px 14px;
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .dl:hover { border-color: var(--ink); background: #ebe5d8; }
+  .dl .platform {
+    font-family: "Inter Tight", sans-serif;
+    font-size: 10px; letter-spacing: 0.28em;
+    text-transform: uppercase; font-weight: 600;
+    color: var(--graphite); margin-bottom: 2px;
+  }
+  .dl .filename {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 17px; font-weight: 500;
+  }
+  .dl .size {
+    font-family: "Inter Tight", sans-serif;
+    font-size: 11px; color: var(--graphite);
+    margin-top: 4px;
+  }
+
+  .edition-footer {
+    margin-top: 22px;
+    display: flex; justify-content: space-between; align-items: baseline;
+    flex-wrap: wrap; gap: 12px;
+  }
+  .edition-footer a {
+    color: var(--ink); text-decoration: none;
+    border-bottom: 1px solid var(--gold);
+    padding-bottom: 2px;
+    font-family: "Inter Tight", sans-serif;
+    font-size: 11px; letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .edition-footer a:hover { border-bottom-color: var(--ink); }
+  .edition-footer .ticker {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-size: 13px; color: var(--graphite);
+  }
+
+  .edition-loading .primary-download,
+  .edition-loading details.all-platforms { opacity: 0.4; pointer-events: none; }
+  .edition-error .primary-download,
+  .edition-error details.all-platforms { display: none; }
+
+  /* Screenshots */
+  .plate { margin: 48px 0; }
+  .plate img {
+    width: 100%; height: auto; display: block;
+    border: 1px solid rgba(28,28,26,0.15);
+    background: var(--paper-raised);
+  }
+  .plate figcaption {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    color: var(--graphite);
+    font-size: 14px;
+    margin-top: 10px;
+    text-align: center;
+  }
+  .plate-head {
+    font-family: "Inter Tight", sans-serif;
+    font-size: 10px; letter-spacing: 0.32em;
+    text-transform: uppercase; font-weight: 600;
+    color: var(--graphite);
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .plate h3 {
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 600;
+    font-size: 28px;
+    margin: 0 0 16px;
+    text-align: center;
+    letter-spacing: -0.01em;
+  }
+
+  /* Features ledger */
+  .ledger {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0 48px;
+  }
+  @media (max-width: 720px) { .ledger { grid-template-columns: 1fr; } }
+  .ledger-item {
+    padding: 18px 0;
+    border-bottom: 1px solid rgba(28,28,26,0.1);
+  }
+  .ledger-item h4 {
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 600;
+    font-size: 20px;
+    margin: 0 0 4px;
+  }
+  .ledger-item p {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--graphite);
+    margin: 0;
+  }
+
+  section h2.section-title {
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 600;
+    font-size: 36px;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  section .section-eyebrow {
+    font-family: "Inter Tight", sans-serif;
+    font-size: 10px; letter-spacing: 0.32em;
+    text-transform: uppercase; font-weight: 600;
+    color: var(--graphite);
+    margin-bottom: 8px;
+  }
+
+  /* Footer */
+  footer {
+    margin: 80px 0 40px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(28,28,26,0.6);
+    display: flex; justify-content: space-between; align-items: baseline;
+    flex-wrap: wrap; gap: 16px;
+  }
+  footer .credit {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    color: var(--graphite);
+    font-size: 14px;
+  }
+  footer a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--gold);
+    padding-bottom: 1px;
+  }
+  footer a:hover { border-bottom-color: var(--ink); }
+  footer .nav {
+    display: flex; gap: 24px;
+    font-family: "Inter Tight", sans-serif;
+    font-size: 10px; letter-spacing: 0.28em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+
+<body>
+
+<main class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-top">
+      <span class="eyebrow">Vol. I &nbsp;·&nbsp; Edition for the Solitary Player</span>
+      <span class="masthead-right">
+        <a class="masthead-link" href="https://github.com/torryt/aoe4-almanac" target="_blank" rel="noopener" aria-label="View source on GitHub">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          Source
+        </a>
+        <span class="folio">est. mmxxv</span>
+      </span>
+    </div>
+
+    <div class="title-row">
+      <!-- Crossed-swords mark, copied from src-tauri/icons/source.svg -->
+      <svg class="mark" viewBox="0 0 1024 1024" aria-hidden="true">
+        <defs>
+          <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#a83232"/>
+            <stop offset="1" stop-color="#7a1f1f"/>
+          </linearGradient>
+          <linearGradient id="blade" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#f6f1e6"/>
+            <stop offset="0.5" stop-color="#d8d2c3"/>
+            <stop offset="1" stop-color="#a8a294"/>
+          </linearGradient>
+          <linearGradient id="bladeEdge" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#bfb9aa"/>
+            <stop offset="0.5" stop-color="#ffffff"/>
+            <stop offset="1" stop-color="#8a8478"/>
+          </linearGradient>
+          <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#c9a55a"/>
+            <stop offset="0.5" stop-color="#a4863e"/>
+            <stop offset="1" stop-color="#6f5829"/>
+          </linearGradient>
+          <symbol id="sword" overflow="visible">
+            <polygon points="0,-360 36,-320 30,80 -30,80 -36,-320" fill="url(#blade)"/>
+            <polygon points="0,-360 36,-320 30,80 -30,80 -36,-320" fill="none" stroke="#2a1810" stroke-width="3" opacity="0.55"/>
+            <rect x="-4" y="-320" width="8" height="395" fill="url(#bladeEdge)" opacity="0.95"/>
+            <rect x="-140" y="80" width="280" height="34" rx="6" fill="url(#gold)"/>
+            <rect x="-140" y="80" width="280" height="34" rx="6" fill="none" stroke="#3d0f0f" stroke-width="3" opacity="0.45"/>
+            <circle cx="-140" cy="97" r="18" fill="url(#gold)"/>
+            <circle cx="140" cy="97" r="18" fill="url(#gold)"/>
+            <rect x="-18" y="114" width="36" height="150" rx="8" fill="#2a1810"/>
+            <g stroke="#5a3a22" stroke-width="2" opacity="0.8">
+              <line x1="-18" y1="135" x2="18" y2="142"/>
+              <line x1="-18" y1="155" x2="18" y2="162"/>
+              <line x1="-18" y1="175" x2="18" y2="182"/>
+              <line x1="-18" y1="195" x2="18" y2="202"/>
+              <line x1="-18" y1="215" x2="18" y2="222"/>
+              <line x1="-18" y1="235" x2="18" y2="242"/>
+            </g>
+            <circle cx="0" cy="280" r="28" fill="url(#gold)"/>
+            <circle cx="0" cy="280" r="28" fill="none" stroke="#3d0f0f" stroke-width="3" opacity="0.5"/>
+            <circle cx="0" cy="280" r="8" fill="#3d0f0f" opacity="0.7"/>
+          </symbol>
+        </defs>
+        <rect x="0" y="0" width="1024" height="1024" rx="180" ry="180" fill="url(#bg)"/>
+        <rect x="36" y="36" width="952" height="952" rx="156" ry="156" fill="none" stroke="url(#gold)" stroke-width="8" opacity="0.8"/>
+        <g transform="translate(512 512) scale(1.28)">
+          <g transform="rotate(40)">
+            <g transform="translate(8 8)" opacity="0.4"><use href="#sword" fill="#000"/></g>
+            <use href="#sword"/>
+          </g>
+          <g transform="rotate(-40)">
+            <g transform="translate(8 8)" opacity="0.4"><use href="#sword" fill="#000"/></g>
+            <use href="#sword"/>
+          </g>
+        </g>
+      </svg>
+
+      <div>
+        <h1 class="title">AOE4<br/>Almanac</h1>
+      </div>
+    </div>
+
+    <p class="kicker">
+      A local-first, single-player desktop journal for keeping a careful record of your Age of Empires&nbsp;IV career &mdash; styled as a leather-bound almanac, not a stats dashboard.
+    </p>
+  </header>
+
+  <div class="ornament">&#x2767; &nbsp; &sect; &nbsp; &#x2767;</div>
+
+  <!-- Intro spread -->
+  <section class="spread">
+    <div class="dropcap">
+      <p>Ranked games are auto-imported from <em>aoe4world.com</em>; custom games are entered by hand; notes hang off civs, matchups, maps, and individual games. Every game gets a markdown pad of its own, every matchup is treated as an ordered pair, and the 23&times;23 grid never lies about which cells you have actually written about.</p>
+      <p>The whole thing runs on your machine. No account. No cloud. Just a notebook that happens to know how to read the API.</p>
+    </div>
+    <blockquote class="pull-quote">
+      A campaign journal for the player who keeps notes between sessions &mdash; not a dashboard for the player who only watches the rating climb.
+    </blockquote>
+  </section>
+
+  <!-- Latest edition / downloads -->
+  <section class="edition edition-loading" id="edition">
+    <span class="corner">No. <span id="edition-no">&hellip;</span></span>
+
+    <div class="edition-head">
+      <h2>The Latest Edition</h2>
+      <span class="version" id="edition-version">loading&hellip;</span>
+      <span class="date" id="edition-date"></span>
+    </div>
+
+    <a class="primary-download unknown" id="primary-download" href="#" target="_blank" rel="noopener">
+      <span class="label">Download</span>
+      <span class="platform" id="primary-platform">Choose your platform</span>
+      <span class="filename" id="primary-filename">&mdash;</span>
+      <span class="size" id="primary-size">&mdash;</span>
+    </a>
+
+    <details class="all-platforms">
+      <summary>All platforms</summary>
+      <div class="platform-list" id="platform-list">
+        <a class="dl" data-os="windows" href="#" target="_blank" rel="noopener">
+          <span class="platform">Windows &middot; .msi</span>
+          <span class="filename">Installer</span>
+          <span class="size" data-size>&mdash;</span>
+        </a>
+        <a class="dl" data-os="macos" href="#" target="_blank" rel="noopener">
+          <span class="platform">macOS &middot; .dmg</span>
+          <span class="filename">Apple Silicon</span>
+          <span class="size" data-size>&mdash;</span>
+        </a>
+        <a class="dl" data-os="linux-appimage" href="#" target="_blank" rel="noopener">
+          <span class="platform">Linux &middot; .AppImage</span>
+          <span class="filename">Portable</span>
+          <span class="size" data-size>&mdash;</span>
+        </a>
+        <a class="dl" data-os="linux-deb" href="#" target="_blank" rel="noopener">
+          <span class="platform">Linux &middot; .deb</span>
+          <span class="filename">Debian / Ubuntu</span>
+          <span class="size" data-size>&mdash;</span>
+        </a>
+      </div>
+    </details>
+
+    <div class="edition-footer">
+      <span class="ticker" id="edition-status">Fetching the latest release from GitHub&hellip;</span>
+      <a href="https://github.com/torryt/aoe4-almanac/releases" target="_blank" rel="noopener">See all releases &rarr;</a>
+    </div>
+  </section>
+
+  <hr class="rule-gold" />
+
+  <!-- Screenshots -->
+  <section>
+    <div class="plate">
+      <div class="plate-head">Plate I</div>
+      <h3>The Dashboard</h3>
+      <figure>
+        <img src="./screenshots/dashboard.png" alt="The Templar Almanac dashboard" />
+        <figcaption>Lifetime W/L, rating sparkline, and the most recent games rendered as a ledger.</figcaption>
+      </figure>
+    </div>
+
+    <div class="ornament">&#x2767;</div>
+
+    <div class="plate">
+      <div class="plate-head">Plate II</div>
+      <h3>A Single Game, With Notes</h3>
+      <figure>
+        <img src="./screenshots/game-detail.png" alt="Game detail view with handwritten notes" />
+        <figcaption>Every imported game gets its own detail page, deep-linked to aoe4world and to the relevant civ, matchup, and map notes.</figcaption>
+      </figure>
+    </div>
+
+    <div class="ornament">&#x2767;</div>
+
+    <div class="plate">
+      <div class="plate-head">Plate III</div>
+      <h3>The Matchup Grid</h3>
+      <figure>
+        <img src="./screenshots/matchups.png" alt="23 by 23 civilization matchup grid" />
+        <figcaption>Every civ against every civ. Green records come from your actual play history; dots mark cells with written notes.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <hr class="rule-thick" />
+
+  <!-- Features -->
+  <section>
+    <div class="section-eyebrow">Contents of the Volume</div>
+    <h2 class="section-title">What&rsquo;s inside</h2>
+
+    <div class="ledger">
+      <div class="ledger-item">
+        <h4>aoe4world sync</h4>
+        <p>Initial backfill on link, then 60-second polling while the app is open. Rate-limited, single-flight, with exponential backoff. Live progress over Server-Sent Events.</p>
+      </div>
+      <div class="ledger-item">
+        <h4>Four kinds of notes</h4>
+        <p>All markdown, all PUT-upsert idempotent: per-civ, per-matchup (ordered pair), per-map, and per-game.</p>
+      </div>
+      <div class="ledger-item">
+        <h4>Variant civ awareness</h4>
+        <p>Knights Templar, Zhu Xi&rsquo;s Legacy, Order of the Dragon and the rest are treated as fully distinct civs &mdash; but grouped under their parent in the grid.</p>
+      </div>
+      <div class="ledger-item">
+        <h4>Opponents browser</h4>
+        <p>A per-opponent ledger so you can see who keeps showing up across your match history, and how you have fared against them.</p>
+      </div>
+      <div class="ledger-item">
+        <h4>Stats &amp; sparklines</h4>
+        <p>Win-loss broken down by civ, map, and matchup. Recent rating history rendered inline.</p>
+      </div>
+      <div class="ledger-item">
+        <h4>Local-first</h4>
+        <p>Everything runs on your machine in a Tauri desktop app. No account, no telemetry, no cloud sync. Your notes are yours.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span class="credit">Set in Cormorant Garamond &amp; Inter Tight. &nbsp; Hand-bound in Tauri.</span>
+    <nav class="nav">
+      <a href="https://github.com/torryt/aoe4-almanac">Source</a>
+      <a href="https://github.com/torryt/aoe4-almanac/releases">Releases</a>
+      <a href="https://aoe4world.com">aoe4world</a>
+    </nav>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  const REPO = "torryt/aoe4-almanac";
+  const RELEASES_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
+  const RELEASES_PAGE = `https://github.com/${REPO}/releases`;
+
+  // Asset matchers — Tauri/tauri-action output filename conventions.
+  // Each returns the first asset whose name matches.
+  const MATCHERS = {
+    "windows":         /\.msi$/i,
+    "macos":           /\.dmg$/i,
+    "linux-appimage":  /\.AppImage$/i,
+    "linux-deb":       /\.deb$/i,
+  };
+
+  const LABELS = {
+    "windows":        { platform: "Windows",          filename: ".msi installer" },
+    "macos":          { platform: "macOS",            filename: ".dmg, Apple Silicon" },
+    "linux-appimage": { platform: "Linux",            filename: ".AppImage, portable" },
+    "linux-deb":      { platform: "Linux",            filename: ".deb, Debian / Ubuntu" },
+  };
+
+  // Browser OS detection. Uses the modern userAgentData first, falls back to
+  // userAgent / platform strings. For Linux we default to AppImage; the deb
+  // is one click away in the expanded list.
+  function detectOS() {
+    const uad = navigator.userAgentData;
+    const platform = (uad?.platform || navigator.platform || "").toLowerCase();
+    const ua = (navigator.userAgent || "").toLowerCase();
+
+    if (platform.includes("win") || ua.includes("windows")) return "windows";
+    if (platform.includes("mac") || ua.includes("mac os") || ua.includes("macintosh")) return "macos";
+    if (platform.includes("linux") || ua.includes("linux") || ua.includes("x11")) return "linux-appimage";
+    return null;
+  }
+
+  function fmtBytes(n) {
+    if (!n && n !== 0) return "";
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return (n / 1024).toFixed(0) + " KB";
+    return (n / (1024 * 1024)).toFixed(1) + " MB";
+  }
+
+  function fmtDate(iso) {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    } catch { return ""; }
+  }
+
+  function setError(msg) {
+    const ed = document.getElementById("edition");
+    ed.classList.remove("edition-loading");
+    ed.classList.add("edition-error");
+    document.getElementById("edition-version").textContent = "";
+    document.getElementById("edition-status").textContent = msg;
+  }
+
+  function applyRelease(release) {
+    const ed = document.getElementById("edition");
+    ed.classList.remove("edition-loading");
+
+    const tag = (release.tag_name || "").replace(/^v/, "");
+    document.getElementById("edition-version").textContent = tag ? `v${tag}` : "";
+    document.getElementById("edition-date").textContent = fmtDate(release.published_at);
+    document.getElementById("edition-no").textContent = tag || "—";
+
+    const assets = release.assets || [];
+    const detected = detectOS();
+    const resolved = {}; // key -> asset
+    let resolvedCount = 0;
+
+    // Populate the "all platforms" list.
+    document.querySelectorAll(".dl[data-os]").forEach((el) => {
+      const key = el.dataset.os;
+      const matcher = MATCHERS[key];
+      const asset = assets.find((a) => matcher.test(a.name));
+      const sizeEl = el.querySelector("[data-size]");
+
+      if (asset) {
+        el.href = asset.browser_download_url;
+        sizeEl.textContent = fmtBytes(asset.size);
+        resolved[key] = asset;
+        resolvedCount++;
+      } else {
+        el.href = RELEASES_PAGE;
+        sizeEl.textContent = "not in this release";
+        el.style.opacity = "0.5";
+      }
+    });
+
+    // Primary button — bound to the detected platform's asset, if available.
+    const primary = document.getElementById("primary-download");
+    const status = document.getElementById("edition-status");
+
+    if (detected && resolved[detected]) {
+      const asset = resolved[detected];
+      const labels = LABELS[detected];
+      primary.classList.remove("unknown");
+      primary.href = asset.browser_download_url;
+      document.getElementById("primary-platform").textContent = `Download for ${labels.platform}`;
+      document.getElementById("primary-filename").textContent = labels.filename;
+      document.getElementById("primary-size").textContent = fmtBytes(asset.size);
+      status.textContent = "Detected your platform from the browser. Other downloads below.";
+    } else if (resolvedCount > 0) {
+      // Detection failed or no matching asset — collapse to the expandable list.
+      primary.style.display = "none";
+      const details = document.querySelector("details.all-platforms");
+      details.setAttribute("open", "");
+      details.querySelector("summary").style.display = "none";
+      status.textContent = "Could not detect your platform — pick one below.";
+    } else {
+      primary.style.display = "none";
+      status.textContent = "No installers attached to this release yet.";
+    }
+  }
+
+  fetch(RELEASES_URL, { headers: { "Accept": "application/vnd.github+json" } })
+    .then((r) => {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(applyRelease)
+    .catch(() => {
+      setError("Could not reach GitHub. Head to the releases page for downloads →");
+      document.getElementById("primary-download").href = RELEASES_PAGE;
+      document.querySelectorAll(".dl[data-os]").forEach((el) => { el.href = RELEASES_PAGE; });
+    });
+})();
+</script>
+
+</body>
+</html>
