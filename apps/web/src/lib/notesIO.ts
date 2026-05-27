@@ -165,9 +165,12 @@ export async function readImportFile(file: File): Promise<ExportPayload> {
   if (typeof p.schema_version !== "number") {
     throw new ImportFormatError("Missing schema_version.");
   }
-  if (p.schema_version > SCHEMA_VERSION) {
+  if (p.schema_version !== SCHEMA_VERSION) {
     throw new ImportFormatError(
-      `Schema version ${p.schema_version} is newer than this app supports (max ${SCHEMA_VERSION}). Please update the app.`,
+      `Schema version mismatch: file is v${p.schema_version}, this app expects v${SCHEMA_VERSION}. ` +
+        (p.schema_version > SCHEMA_VERSION
+          ? "The file was created by a newer version of the app — please update."
+          : "The file was created by an older version of the app — no migration path is available."),
     );
   }
   const notes = p.notes;
