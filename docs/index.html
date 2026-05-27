@@ -544,8 +544,8 @@
       <summary>All platforms</summary>
       <div class="platform-list" id="platform-list">
         <a class="dl" data-os="windows" href="#" target="_blank" rel="noopener">
-          <span class="platform">Windows &middot; .msi</span>
-          <span class="filename">Installer</span>
+          <span class="platform">Windows &middot; .exe</span>
+          <span class="filename">NSIS installer</span>
           <span class="size" data-size>&mdash;</span>
         </a>
         <a class="dl" data-os="macos" href="#" target="_blank" rel="noopener">
@@ -556,11 +556,6 @@
         <a class="dl" data-os="linux-appimage" href="#" target="_blank" rel="noopener">
           <span class="platform">Linux &middot; .AppImage</span>
           <span class="filename">Portable</span>
-          <span class="size" data-size>&mdash;</span>
-        </a>
-        <a class="dl" data-os="linux-deb" href="#" target="_blank" rel="noopener">
-          <span class="platform">Linux &middot; .deb</span>
-          <span class="filename">Debian / Ubuntu</span>
           <span class="size" data-size>&mdash;</span>
         </a>
       </div>
@@ -657,24 +652,41 @@
 <script>
 (function () {
   const REPO = "torryt/aoe4-almanac";
-  const RELEASES_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
+  // Fetch a page of recent releases (not just /releases/latest) so we can
+  // pick the most recent release where the Windows and macOS installers
+  // have both finished uploading. The release workflow publishes the tag
+  // before the matrix builds finish, so the freshest release can be empty
+  // for several minutes.
+  const RELEASES_URL = `https://api.github.com/repos/${REPO}/releases?per_page=10`;
   const RELEASES_PAGE = `https://github.com/${REPO}/releases`;
 
   // Asset matchers — Tauri/tauri-action output filename conventions.
-  // Each returns the first asset whose name matches.
+  // Windows is NSIS only (no MSI); Linux is AppImage only (no .deb).
   const MATCHERS = {
-    "windows":         /\.msi$/i,
+    "windows":         /-setup\.exe$/i,
     "macos":           /\.dmg$/i,
     "linux-appimage":  /\.AppImage$/i,
-    "linux-deb":       /\.deb$/i,
   };
 
   const LABELS = {
-    "windows":        { platform: "Windows",          filename: ".msi installer" },
+    "windows":        { platform: "Windows",          filename: ".exe installer (NSIS)" },
     "macos":          { platform: "macOS",            filename: ".dmg, Apple Silicon" },
     "linux-appimage": { platform: "Linux",            filename: ".AppImage, portable" },
-    "linux-deb":      { platform: "Linux",            filename: ".deb, Debian / Ubuntu" },
   };
+
+  // Required assets for a release to be considered "ready" — used to skip
+  // freshly-published tags whose matrix builds have not finished uploading.
+  const REQUIRED_KEYS = ["windows", "macos"];
+
+  function pickReadyRelease(releases) {
+    for (const r of releases) {
+      if (r.draft || r.prerelease) continue;
+      const assets = r.assets || [];
+      const ready = REQUIRED_KEYS.every((k) => assets.some((a) => MATCHERS[k].test(a.name)));
+      if (ready) return r;
+    }
+    return null;
+  }
 
   // Browser OS detection. Uses the modern userAgentData first, falls back to
   // userAgent / platform strings. For Linux we default to AppImage; the deb
@@ -776,7 +788,16 @@
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     })
-    .then(applyRelease)
+    .then((releases) => {
+      const ready = pickReadyRelease(releases);
+      if (!ready) {
+        setError("No release with installers attached yet. Check the releases page →");
+        document.getElementById("primary-download").href = RELEASES_PAGE;
+        document.querySelectorAll(".dl[data-os]").forEach((el) => { el.href = RELEASES_PAGE; });
+        return;
+      }
+      applyRelease(ready);
+    })
     .catch(() => {
       setError("Could not reach GitHub. Head to the releases page for downloads →");
       document.getElementById("primary-download").href = RELEASES_PAGE;
