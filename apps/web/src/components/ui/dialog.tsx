@@ -31,7 +31,7 @@ export const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 border-2 border-[#1c1c1a] bg-[#f1ece4] p-8 shadow-[0_20px_60px_rgba(28,28,26,0.35)] focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 border-2 border-[#1c1c1a] bg-[#f1ece4] p-8 shadow-[0_20px_60px_rgba(28,28,26,0.35)] focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 [&>*]:min-w-0",
         className,
       )}
       {...props}
@@ -57,7 +57,7 @@ export const DialogFooter = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn("flex flex-row justify-end gap-3 pt-2", className)}
+    className={cn("flex flex-row flex-wrap justify-end gap-3 pt-2", className)}
     {...props}
   />
 );

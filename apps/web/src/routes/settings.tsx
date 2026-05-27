@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   api,
   clearGameDataCache,
@@ -12,6 +12,20 @@ import {
   type SyncStatus,
   type UserPreferences,
 } from "../lib/api.ts";
+import {
+  applyImport,
+  detectConflicts,
+  exportAsJson,
+  exportAsMarkdownZip,
+  fetchAllNotes,
+  ImportFormatError,
+  readImportFile,
+  type Conflicts,
+  type ConflictStrategy,
+  type ExportPayload,
+  type ImportResult,
+  type NotesBundle,
+} from "../lib/notesIO.ts";
 import { useSyncEvents } from "../lib/useSyncEvents.ts";
 import { Spinner } from "../components/Spinner.tsx";
 import {
@@ -319,6 +333,14 @@ function Settings() {
 
           <div>
             <div className="flex items-center gap-4 pb-4">
+              <span className="eyebrow">Notes Archive</span>
+              <hr className="rule-faint flex-1" />
+            </div>
+            <DataSection />
+          </div>
+
+          <div>
+            <div className="flex items-center gap-4 pb-4">
               <span className="eyebrow">Sync Status</span>
               <hr className="rule-faint flex-1" />
             </div>
@@ -610,5 +632,289 @@ function SyncProgressPanel({
         <p className="kicker pt-1 text-[#9b2b2b]">{progress.error}</p>
       )}
     </div>
+  );
+}
+
+function DataSection() {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState<null | "json" | "md">(null);
+  const [error, setError] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<ImportResult | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [importStep, setImportStep] = useState<
+    | { kind: "idle" }
+    | { kind: "loading" }
+    | { kind: "ready"; payload: ExportPayload; current: NotesBundle; conflicts: Conflicts }
+    | { kind: "applying" }
+  >({ kind: "idle" });
+
+  async function handleExport(kind: "json" | "md"): Promise<void> {
+    setError(null);
+    setBusy(kind);
+    try {
+      if (kind === "json") await exportAsJson();
+      else await exportAsMarkdownZip();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function openPicker(): void {
+    setError(null);
+    setLastResult(null);
+    fileRef.current?.click();
+  }
+
+  async function handleFile(file: File): Promise<void> {
+    setError(null);
+    setLastResult(null);
+    setImportStep({ kind: "loading" });
+    try {
+      const payload = await readImportFile(file);
+      const current = await fetchAllNotes();
+      const conflicts = detectConflicts(current, payload.notes);
+      setImportStep({ kind: "ready", payload, current, conflicts });
+    } catch (e) {
+      setImportStep({ kind: "idle" });
+      setError(
+        e instanceof ImportFormatError
+          ? e.message
+          : `Failed to read file: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
+
+  async function runImport(strategy: ConflictStrategy): Promise<void> {
+    if (importStep.kind !== "ready") return;
+    const { payload, current } = importStep;
+    setImportStep({ kind: "applying" });
+    try {
+      const result = await applyImport(current, payload.notes, strategy);
+      setLastResult(result);
+      // Note caches are derived from the DB; invalidate everything notey.
+      void qc.invalidateQueries({ queryKey: ["notes"] });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImportStep({ kind: "idle" });
+    }
+  }
+
+  function cancelImport(): void {
+    setImportStep({ kind: "idle" });
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p
+          className="font-display"
+          style={{ fontSize: 18, fontWeight: 600 }}
+        >
+          Export notes
+        </p>
+        <p className="kicker italic text-[#5b574e] pb-3">
+          Bundle your civ, matchup, map, and game notes for backup or transfer.
+          The <span className="font-semibold not-italic">JSON</span> format is
+          the only one that can be re-imported; the Markdown zip is for reading
+          and external use.
+        </p>
+        <div className="flex gap-3">
+          <Button
+            variant="signet"
+            onClick={() => handleExport("json")}
+            disabled={busy !== null}
+          >
+            {busy === "json" && <Spinner size={12} />}
+            Export as JSON
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => handleExport("md")}
+            disabled={busy !== null}
+          >
+            {busy === "md" && <Spinner size={12} />}
+            Export as Markdown (.zip)
+          </Button>
+        </div>
+      </div>
+
+      <div>
+        <p
+          className="font-display"
+          style={{ fontSize: 18, fontWeight: 600 }}
+        >
+          Import notes
+        </p>
+        <p className="kicker italic text-[#5b574e] pb-3">
+          Restore notes from a previously exported JSON file. If any notes
+          already exist with different contents, you'll be asked how to resolve
+          the conflicts.
+        </p>
+        <div className="flex gap-3 items-center">
+          <Button
+            variant="ghost"
+            onClick={openPicker}
+            disabled={importStep.kind !== "idle"}
+          >
+            {importStep.kind === "loading" && <Spinner size={12} />}
+            {importStep.kind === "loading" ? "Reading…" : "Import from JSON…"}
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void handleFile(f);
+            }}
+          />
+        </div>
+        {error && (
+          <p className="kicker pt-2 text-[#9b2b2b]">{error}</p>
+        )}
+        {lastResult && (
+          <p className="kicker pt-2">
+            Imported {lastResult.written} note
+            {lastResult.written === 1 ? "" : "s"}
+            {lastResult.skipped > 0 ? `, skipped ${lastResult.skipped}` : ""}
+            {lastResult.failed > 0 ? `, failed ${lastResult.failed}` : ""}.
+            {lastResult.failed > 0 && lastResult.failures.length > 0 && (
+              <span className="block italic text-[#5b574e] pt-1">
+                {lastResult.failures.slice(0, 3).join(" · ")}
+                {lastResult.failures.length > 3
+                  ? ` · …and ${lastResult.failures.length - 3} more`
+                  : ""}
+              </span>
+            )}
+          </p>
+        )}
+      </div>
+
+      <ImportConflictDialog
+        step={importStep}
+        onCancel={cancelImport}
+        onApply={runImport}
+      />
+    </div>
+  );
+}
+
+function totalIncoming(notes: NotesBundle): number {
+  return notes.civ.length + notes.matchup.length + notes.map.length + notes.game.length;
+}
+
+function ImportConflictDialog({
+  step,
+  onCancel,
+  onApply,
+}: {
+  step:
+    | { kind: "idle" }
+    | { kind: "loading" }
+    | { kind: "ready"; payload: ExportPayload; current: NotesBundle; conflicts: Conflicts }
+    | { kind: "applying" };
+  onCancel: () => void;
+  onApply: (s: ConflictStrategy) => void;
+}) {
+  const open = step.kind === "ready" || step.kind === "applying";
+  const applying = step.kind === "applying";
+  const ready = step.kind === "ready" ? step : null;
+
+  const conflicts = ready?.conflicts;
+  const incoming = ready?.payload.notes;
+  const incomingTotal = incoming ? totalIncoming(incoming) : 0;
+  const conflictTotal = conflicts?.total ?? 0;
+  const noConflicts = conflictTotal === 0;
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && !applying && onCancel()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {noConflicts ? "Ready to import" : "Resolve note conflicts"}
+          </DialogTitle>
+          <DialogDescription>
+            The file contains{" "}
+            <span className="font-semibold text-[#1c1c1a]">{incomingTotal}</span>{" "}
+            note{incomingTotal === 1 ? "" : "s"}
+            {noConflicts ? (
+              <> — none conflict with what you already have.</>
+            ) : (
+              <>
+                . Of those,{" "}
+                <span className="font-semibold text-[#9b2b2b]">
+                  {conflictTotal}
+                </span>{" "}
+                conflict with notes you've already written. Choose how to
+                resolve them — non-conflicting notes are always imported.
+              </>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        {!noConflicts && conflicts && (
+          <div className="border-l-2 border-[rgba(28,28,26,0.18)] pl-4 py-2">
+            <p className="eyebrow-tight pb-2">Conflicts by kind</p>
+            <dl className="stat-block">
+              <dt>Civ notes</dt>
+              <dd className="font-display font-semibold">{conflicts.civ.length}</dd>
+              <dt>Matchup notes</dt>
+              <dd className="font-display font-semibold">{conflicts.matchup.length}</dd>
+              <dt>Map notes</dt>
+              <dd className="font-display font-semibold">{conflicts.map.length}</dd>
+              <dt>Game notes</dt>
+              <dd className="font-display font-semibold">{conflicts.game.length}</dd>
+            </dl>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onCancel} disabled={applying}>
+            Cancel
+          </Button>
+          {noConflicts ? (
+            <Button
+              variant="signet"
+              onClick={() => onApply("skip")}
+              disabled={applying}
+            >
+              {applying && <Spinner size={12} />}
+              Import
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => onApply("skip")}
+                disabled={applying}
+              >
+                Skip conflicts
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => onApply("newest")}
+                disabled={applying}
+              >
+                Keep newest
+              </Button>
+              <Button
+                variant="signet"
+                onClick={() => onApply("merge")}
+                disabled={applying}
+              >
+                {applying && <Spinner size={12} />}
+                Merge both
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -74,6 +74,7 @@ pub fn run() {
             commands::game_notes_batch,
             commands::game_note_get,
             commands::game_note_put,
+            commands::notes_export_all,
             // opponents
             commands::opponents_list,
             commands::opponents_get,

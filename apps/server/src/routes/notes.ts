@@ -242,3 +242,54 @@ notesRoutes.put(
     return c.json({ ok: true });
   },
 );
+
+// --- Bulk export ---
+notesRoutes.get("/export", (c) => {
+  const userId = c.get("userId");
+  const civ = db()
+    .select()
+    .from(civNotes)
+    .where(eq(civNotes.userId, userId))
+    .all()
+    .map((r) => ({
+      civ_slug: r.civSlug,
+      body_md: r.bodyMd,
+      created_at: r.createdAt,
+      updated_at: r.updatedAt,
+    }));
+  const matchup = db()
+    .select()
+    .from(matchupNotes)
+    .where(eq(matchupNotes.userId, userId))
+    .all()
+    .map((r) => ({
+      my_civ_slug: r.myCivSlug,
+      opp_civ_slug: r.oppCivSlug,
+      body_md: r.bodyMd,
+      created_at: r.createdAt,
+      updated_at: r.updatedAt,
+    }));
+  const map = db()
+    .select()
+    .from(mapNotes)
+    .where(eq(mapNotes.userId, userId))
+    .all()
+    .map((r) => ({
+      map_slug: r.mapSlug,
+      body_md: r.bodyMd,
+      created_at: r.createdAt,
+      updated_at: r.updatedAt,
+    }));
+  const game = db()
+    .select()
+    .from(gameNotes)
+    .where(eq(gameNotes.userId, userId))
+    .all()
+    .map((r) => ({
+      game_id: r.gameId,
+      body_md: r.bodyMd,
+      created_at: r.createdAt,
+      updated_at: r.updatedAt,
+    }));
+  return c.json({ civ, matchup, map, game });
+});
