@@ -7,6 +7,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TooltipProvider } from "../components/ui/index.ts";
 import { Titlebar } from "../components/Titlebar.tsx";
+import { UpdateBanner } from "../components/UpdateBanner.tsx";
 import {
   api,
   qk,
@@ -123,6 +124,7 @@ function RootLayout() {
   return (
     <TooltipProvider delayDuration={150}>
       <Titlebar />
+      <UpdateBanner />
       <div className="relative z-10 mx-auto" style={{ maxWidth: 1320 }}>
         <Masthead
           tickerText={tickerText}

@@ -5,7 +5,7 @@ name: release
 # release → Publish).
 #
 # Only plain semver tags like 0.1.0 (optionally v-prefixed) are supported —
-# pre-release tags such as 0.1.0-rc.1 are rejected, because the Windows MSI
+# pre-release tags such as 0.1.0-rc.1 are rejected, because the Windows
 # bundler does not accept non-numeric pre-release identifiers and stripping
 # them would make multiple rc builds collide on the same installer version.
 on:
@@ -23,10 +23,13 @@ jobs:
         include:
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
+            bundles: appimage
           - os: macos-latest
             target: aarch64-apple-darwin
+            bundles: app,dmg
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            bundles: nsis
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -41,8 +44,6 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          # release events check out the default branch by default; we want
-          # the exact tag that was published.
           ref: ${{ github.event.release.tag_name }}
 
       - name: Install Linux deps
@@ -111,6 +112,87 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           releaseId: ${{ github.event.release.id }}
-          args: --target ${{ matrix.target }}
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+
+  # After all platform builds finish, fetch the per-platform .sig files from
+  # the release and assemble a single latest.json that the updater endpoint
+  # serves. tauri-action emits one latest.json per matrix job, which would
+  # otherwise clobber each other; this job replaces them with a merged one.
+  publish-updater-manifest:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Assemble latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          REPO="${GITHUB_REPOSITORY}"
+          mkdir -p _updater
+          cd _updater
+
+          # Download all .sig files plus the platform installers we point to.
+          gh release download "$TAG" --repo "$REPO" --pattern '*.sig' || true
+          ls -la
+
+          base_url="https://github.com/${REPO}/releases/download/${TAG}"
+
+          # Resolve asset names from the release.
+          assets=$(gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets[].name')
+
+          appimage=$(echo "$assets" | grep -E '\.AppImage$' | head -n1 || true)
+          appimage_sig=$(echo "$assets" | grep -E '\.AppImage\.sig$' | head -n1 || true)
+          nsis=$(echo "$assets" | grep -E '-setup\.exe$' | head -n1 || true)
+          nsis_sig=$(echo "$assets" | grep -E '-setup\.exe\.sig$' | head -n1 || true)
+          macapp=$(echo "$assets" | grep -E '\.app\.tar\.gz$' | head -n1 || true)
+          macapp_sig=$(echo "$assets" | grep -E '\.app\.tar\.gz\.sig$' | head -n1 || true)
+
+          read_sig() {
+            local f="$1"
+            [[ -z "$f" || ! -f "$f" ]] && echo "" || cat "$f"
+          }
+
+          linux_sig=$(read_sig "$appimage_sig")
+          win_sig=$(read_sig "$nsis_sig")
+          mac_sig=$(read_sig "$macapp_sig")
+
+          pub_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          jq -n \
+            --arg version "$VERSION" \
+            --arg notes "${RELEASE_BODY:-}" \
+            --arg pub_date "$pub_date" \
+            --arg linux_url "${base_url}/${appimage}" \
+            --arg linux_sig "$linux_sig" \
+            --arg win_url "${base_url}/${nsis}" \
+            --arg win_sig "$win_sig" \
+            --arg mac_url "${base_url}/${macapp}" \
+            --arg mac_sig "$mac_sig" '
+            {
+              version: $version,
+              notes: $notes,
+              pub_date: $pub_date,
+              platforms: (
+                {} +
+                (if $linux_sig != "" then {"linux-x86_64": {signature: $linux_sig, url: $linux_url}} else {} end) +
+                (if $win_sig != "" then {"windows-x86_64": {signature: $win_sig, url: $win_url}} else {} end) +
+                (if $mac_sig != "" then {"darwin-aarch64": {signature: $mac_sig, url: $mac_url}} else {} end)
+              )
+            }' > latest.json
+
+          cat latest.json
+
+          # Replace any per-platform latest.json that tauri-action uploaded.
+          gh release delete-asset "$TAG" latest.json --repo "$REPO" --yes || true
+          gh release upload "$TAG" latest.json --repo "$REPO" --clobber

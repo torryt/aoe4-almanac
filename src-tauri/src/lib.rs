@@ -32,6 +32,8 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let db_path = db::resolve_db_path()?;
             log::info!("opening db at {}", db_path.display());
