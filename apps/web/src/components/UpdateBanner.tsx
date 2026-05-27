@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { useUpdater } from "../lib/useUpdater.ts";
 
 export function UpdateBanner() {
   const { state, install } = useUpdater({ checkOnMount: true });
+  const [dismissed, setDismissed] = useState(false);
 
   if (state.phase === "idle" || state.phase === "checking") return null;
   if (state.phase === "error") return null;
+  if (dismissed && state.phase === "available") return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded border border-[#c9bfa6] bg-[#f8f4ea] shadow-lg px-4 py-3">
@@ -24,6 +27,14 @@ export function UpdateBanner() {
             className="eyebrow-tight text-[#7a6a4a] hover:text-[#1c1c1a] underline-offset-2 hover:underline cursor-pointer"
           >
             install
+          </button>
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            aria-label="Dismiss"
+            className="text-[#7a6a4a] hover:text-[#1c1c1a] leading-none text-lg cursor-pointer -mt-0.5"
+          >
+            ×
           </button>
         </div>
       ) : null}
