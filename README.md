@@ -33,6 +33,7 @@ Every civ vs every civ. Green numbers are W–L records pulled from your actual 
 ## Features
 
 - **aoe4world sync**: initial backfill on link + 60 s polling while the app is open. Rate-limited client (30 req/min, single-flight mutex, exponential backoff on 429). Live progress over Server-Sent Events.
+- **Manual game entry**: log custom / unranked games with civs, result, opponent, map, duration, kind, and first note.
 - **Four kinds of notes**, all markdown, all PUT-upsert idempotent: per-civ, per-matchup (ordered pair — `templar→mongols` ≠ `mongols→templar`), per-map, per-game.
 - **Variant civ awareness**: KT, Zhu Xi's, OotD, etc. are treated as fully distinct civs everywhere notes can attach, but grouped under their parent civ in the matchup grid and linked via "See also".
 - **Opponents browser** with per-opponent ledger.

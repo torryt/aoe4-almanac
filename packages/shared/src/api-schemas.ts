@@ -53,6 +53,21 @@ export const gamesResponseSchema = z.object({
   next_cursor: z.number().int().nullable(),
 });
 
+// POST /games (manual entry)
+export const manualGameBodySchema = z.object({
+  started_at: z.number().int(),
+  duration_seconds: z.number().int().min(0).max(60 * 60 * 24).nullable().optional(),
+  map_slug: mapSlugSchema.nullable().optional(),
+  kind: gameKindSchema.default("custom"),
+  my_civ_slug: civSlugSchema,
+  my_result: resultSchema,
+  opp_civ_slug: civSlugSchema.optional(),
+  opp_name: z.string().min(1).max(64).optional(),
+  notes: z.string().max(200000).optional(),
+});
+
+export const manualGamePatchSchema = manualGameBodySchema.partial();
+
 // /sync
 export const syncRunBodySchema = z
   .object({
@@ -147,6 +162,7 @@ export const statsRecentResponseSchema = z.object({
   }),
 });
 
+export type ManualGameBody = z.infer<typeof manualGameBodySchema>;
 export type GamesQuery = z.infer<typeof gamesQuerySchema>;
 export type SyncStatusResponse = z.infer<typeof syncStatusResponseSchema>;
 export type StatsByCivResponse = z.infer<typeof statsByCivResponseSchema>;

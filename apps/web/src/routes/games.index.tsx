@@ -9,6 +9,7 @@ import {
   type GameNoteBatchEntry,
 } from "../lib/api.ts";
 import {
+  Button,
   Select,
   SelectContent,
   SelectItem,
@@ -111,6 +112,12 @@ function GamesList() {
           </p>
           <hr className="rule-gold my-6" />
 
+          <Link to="/games/new">
+            <Button variant="signet" size="md">
+              + Log Manual Entry
+            </Button>
+          </Link>
+
           <div className="mt-8 space-y-5">
             <div>
               <Label>My Civilization</Label>
@@ -194,6 +201,7 @@ function GamesList() {
                   <SelectItem value="rm_4v4">Ranked 4v4</SelectItem>
                   <SelectItem value="qm_1v1">Quick 1v1</SelectItem>
                   <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
                 </SelectContent>
               </Select>
             </div>

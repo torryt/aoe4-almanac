@@ -84,7 +84,7 @@ export const games = sqliteTable(
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    source: text("source", { enum: ["aoe4world"] }).notNull(),
+    source: text("source", { enum: ["aoe4world", "manual"] }).notNull(),
     aoe4worldGameId: integer("aoe4world_game_id"),
     startedAt: integer("started_at").notNull(),
     durationSeconds: integer("duration_seconds"),

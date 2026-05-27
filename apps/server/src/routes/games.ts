@@ -1,10 +1,19 @@
 import { zValidator } from "@hono/zod-validator";
 import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { gamesQuerySchema } from "@aoe4-almanac/shared";
+import {
+  gamesQuerySchema,
+  manualGameBodySchema,
+  manualGamePatchSchema,
+} from "@aoe4-almanac/shared";
 import type { AppContext } from "../auth/middleware.ts";
 import { db, sqlite } from "../db/client.ts";
 import { gameParticipants, games } from "../db/schema.ts";
+import {
+  ensureMap,
+  normalizeCivSlug,
+  normalizeMapSlug,
+} from "../services/normalize.ts";
 
 export const gamesRoutes = new Hono<AppContext>();
 
@@ -157,3 +166,121 @@ gamesRoutes.get("/:id", (c) => {
   });
 });
 
+gamesRoutes.post("/", zValidator("json", manualGameBodySchema), (c) => {
+  const userId = c.get("userId");
+  const body = c.req.valid("json");
+  const myCiv = normalizeCivSlug(body.my_civ_slug);
+  const mapSlug = body.map_slug ? normalizeMapSlug(body.map_slug) : null;
+  if (mapSlug) ensureMap(mapSlug, body.map_slug ?? null);
+
+  let newGameId = 0;
+  sqlite().transaction(() => {
+    const result = sqlite()
+      .prepare(
+        `INSERT INTO games (
+           user_id, source, started_at, duration_seconds, map_slug, kind,
+           my_civ_slug, my_result, created_at, updated_at
+         ) VALUES (?, 'manual', ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())`,
+      )
+      .run(
+        userId,
+        body.started_at,
+        body.duration_seconds ?? null,
+        mapSlug,
+        body.kind,
+        myCiv,
+        body.my_result,
+      );
+    newGameId = Number(result.lastInsertRowid);
+
+    // Self participant
+    sqlite()
+      .prepare(
+        `INSERT INTO game_participants (game_id, team, is_self, name, civ_slug, result)
+         VALUES (?, 0, 1, 'Me', ?, ?)`,
+      )
+      .run(newGameId, myCiv, body.my_result);
+
+    if (body.opp_civ_slug) {
+      const oppCiv = normalizeCivSlug(body.opp_civ_slug);
+      const oppResult =
+        body.my_result === "win" ? "loss" : body.my_result === "loss" ? "win" : body.my_result;
+      sqlite()
+        .prepare(
+          `INSERT INTO game_participants (game_id, team, is_self, name, civ_slug, result)
+           VALUES (?, 1, 0, ?, ?, ?)`,
+        )
+        .run(newGameId, body.opp_name ?? "Opponent", oppCiv, oppResult);
+    }
+
+    if (body.notes) {
+      sqlite()
+        .prepare(
+          `INSERT INTO game_notes (user_id, game_id, body_md) VALUES (?, ?, ?)`,
+        )
+        .run(userId, newGameId, body.notes);
+    }
+  })();
+
+  return c.json({ id: newGameId }, 201);
+});
+
+gamesRoutes.patch("/:id", zValidator("json", manualGamePatchSchema), (c) => {
+  const userId = c.get("userId");
+  const id = Number(c.req.param("id"));
+  if (!Number.isFinite(id)) return c.json({ error: "bad id" }, 400);
+  const body = c.req.valid("json");
+
+  const existing = db()
+    .select()
+    .from(games)
+    .where(and(eq(games.id, id), eq(games.userId, userId)))
+    .get();
+  if (!existing) return c.json({ error: "not found" }, 404);
+  if (existing.source !== "manual") {
+    return c.json({ error: "only manual games can be edited" }, 400);
+  }
+
+  const sets: Record<string, unknown> = {};
+  if (body.started_at !== undefined) sets["started_at"] = body.started_at;
+  if (body.duration_seconds !== undefined)
+    sets["duration_seconds"] = body.duration_seconds;
+  if (body.map_slug !== undefined) {
+    const m = body.map_slug ? normalizeMapSlug(body.map_slug) : null;
+    sets["map_slug"] = m;
+    if (m) ensureMap(m, body.map_slug ?? null);
+  }
+  if (body.kind !== undefined) sets["kind"] = body.kind;
+  if (body.my_civ_slug !== undefined)
+    sets["my_civ_slug"] = normalizeCivSlug(body.my_civ_slug);
+  if (body.my_result !== undefined) sets["my_result"] = body.my_result;
+
+  if (Object.keys(sets).length > 0) {
+    const fields = Object.keys(sets).map((k) => `${k} = ?`);
+    const values = Object.values(sets);
+    sqlite()
+      .prepare(
+        `UPDATE games SET ${fields.join(", ")}, updated_at = unixepoch() WHERE id = ?`,
+      )
+      .run(...values, id);
+  }
+  return c.json({ ok: true });
+});
+
+gamesRoutes.delete("/:id", (c) => {
+  const userId = c.get("userId");
+  const id = Number(c.req.param("id"));
+  if (!Number.isFinite(id)) return c.json({ error: "bad id" }, 400);
+  const existing = db()
+    .select()
+    .from(games)
+    .where(and(eq(games.id, id), eq(games.userId, userId)))
+    .get();
+  if (!existing) return c.json({ error: "not found" }, 404);
+  if (existing.source !== "manual") {
+    return c.json({ error: "only manual games can be deleted" }, 400);
+  }
+  db().delete(games).where(eq(games.id, id)).run();
+  // Cascade handles game_notes + participants
+  return c.json({ ok: true });
+});

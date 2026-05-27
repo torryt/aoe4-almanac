@@ -6,7 +6,8 @@
 
 Main user mains Knights Templar (`templar`) in AoE4 and wants a private tool that:
 1. Auto-imports their ranked games from the public **aoe4world.com** API (no auth required).
-2. Keeps notes along four dimensions: per-civ general, per-matchup (your civ × opp civ), per-map, and per-game.
+2. Lets them log non-ranked games manually.
+3. Keeps notes along four dimensions: per-civ general, per-matchup (your civ × opp civ), per-map, and per-game.
 
 Repo `/home/torry/dev/aoe4-almanac` starts empty. Target: runs locally now; **schema and architecture are multi-user-ready** so hosting + auth can be added later without data migration.
 
@@ -91,7 +92,7 @@ DB file path: `${AOE4_ALMANAC_DB_PATH ?? '~/.aoe4-almanac/data.db'}` — **not**
 - **`civilizations`** — `slug PK`, `name`, nullable `parent_slug`, `is_variant`, `flag_image_url`, `data_json`, timestamps. Seeded from `civs-index.json`. **Not** FK-referenced from elsewhere (so unknown civs don't break inserts).
 - **`civ_slug_aliases`** — `alias PK`, `civ_slug` → normalizes any slug variants aoe4world's match payloads use vs civs-index. Grown by the `audit-civ-slugs` script.
 - **`maps`** — `id`, `slug UNIQUE` (normalized), `name`, timestamps. Created lazily on first sighting.
-- **`games`** — `id`, `user_id FK CASCADE`, `source ('aoe4world')`, nullable `aoe4world_game_id` with **partial unique** `(user_id, aoe4world_game_id) WHERE NOT NULL`, `started_at`, `duration_seconds`, `map_slug`, `kind`, `leaderboard`, `patch`, `server`, `my_team`, `my_civ_slug`, `my_civ_randomized`, `my_result`, `my_rating`, `my_rating_diff`, `my_mmr`, `raw_payload_json`, `imported_at`, timestamps. Indexes: `(user_id, started_at DESC)`, `(user_id, my_civ_slug)`, `(user_id, map_slug)`.
+- **`games`** — dual-source table. `id`, `user_id FK CASCADE`, `source ('aoe4world'|'manual')`, nullable `aoe4world_game_id` with **partial unique** `(user_id, aoe4world_game_id) WHERE NOT NULL`, `started_at`, `duration_seconds`, `map_slug`, `kind`, `leaderboard`, `patch`, `server`, `my_team`, `my_civ_slug`, `my_civ_randomized`, `my_result`, `my_rating`, `my_rating_diff`, `my_mmr`, `raw_payload_json`, `imported_at`, timestamps. Indexes: `(user_id, started_at DESC)`, `(user_id, my_civ_slug)`, `(user_id, map_slug)`.
 - **`game_participants`** — one row per player in the match (incl. self). `id`, `game_id FK CASCADE`, `team`, `is_self`, `profile_id`, `name`, `civ_slug`, `civ_randomized`, `result`, `rating`, `rating_diff`, `mmr`. Indexes on `game_id`, `civ_slug`, `profile_id`. Enables team-game analytics and matchup-stat joins.
 - **Notes (four tables, all FK to `user_id` CASCADE, all PUT-upsert idempotent)**:
   - `civ_notes` — UNIQUE `(user_id, civ_slug)`
@@ -119,6 +120,9 @@ GET    /civs/:slug
 
 GET    /games                               # filters: civ, opp_civ, map, result, kind, since, limit, cursor
 GET    /games/:id
+POST   /games                               # manual entry
+PATCH  /games/:id                           # edit manual fields / overrides
+DELETE /games/:id                           # source='manual' only
 
 POST   /sync/run                            # { leaderboard?, full? }
 GET    /sync/status
@@ -143,6 +147,7 @@ GET    /stats/recent
 ```
 /                                # dashboard: recent games, last sync, KT quick links
 /games                           # list + filters
+/games/new                       # manual entry form
 /games/$gameId                   # detail + per-game note editor
 /notes/civs                      # civ index with "has notes" badges
 /notes/civs/$slug                # editor + sidebar W/L on this civ
@@ -178,6 +183,7 @@ After backfill, run `pnpm db:audit-civ-slugs`. It diffs `game_participants.civ_s
 - **Variant civs**: KT and French are distinct in every notes dimension. UI shows a "See also: French" link on the KT civ note page; the matchup grid groups variants under parents visually (collapsible). 23 × 23 = 529 matchup cells — rows created lazily via PUT-upsert.
 - **Matchup notes are 1v1-scoped by definition.** Team-game matchups (2v2/3v3/4v4) don't map cleanly to "my civ × opp civ"; per-game and per-civ notes carry that load. Stats filters use `kind = 'rm_1v1'`.
 - **`civilization_randomized`**: stored on `games` and `game_participants`. Stats UI offers an "exclude randomized" toggle. Matchup notes still file under the rolled civ — that's the matchup that actually happened.
+- **Manual entries**: minimum fields = `started_at`, `my_civ_slug`, `my_result`. Optionally attach one opponent (`game_participants` row, `is_self=0`) so manuals show in matchup stats.
 
 ---
 
@@ -213,13 +219,14 @@ End-to-end smoke once landed:
 1. `pnpm install && pnpm db:migrate && pnpm db:seed && pnpm dev`.
 2. Open `http://localhost:5173` → `/settings`. Search your in-game name → select profile → backfill kicks off. Watch `/api/v1/sync/status` until `last_seen_game_id` is populated.
 3. `/games` shows recent ranked games with civs, maps, W/L, rating delta.
-4. `/notes/civs/templar` — write a KT general note, save, reload, confirm persistence.
-5. `/notes/matchups/templar/mongols` — write a matchup note. Confirm it shows on the matchup grid (`/notes/matchups`) with a "has notes" indicator on the (templar, mongols) cell.
-6. `/notes/maps/<one-of-your-maps>` — same.
-7. Open a 1v1 game detail page, attach a per-game note, confirm it survives a reload.
-8. Restart server (`pnpm dev`), confirm all data persists from `~/.aoe4-almanac/data.db`.
-9. Run `pnpm db:audit-civ-slugs` — confirm zero unknown slugs (or commit the aliases it surfaces).
-10. `pnpm lint` (oxlint) and `pnpm fmt` (oxfmt) both clean.
+4. `/games/new` — log a manual game (e.g. a custom KT vs Mongols) with one opp participant. Confirm it appears in the list and in matchup stats.
+5. `/notes/civs/templar` — write a KT general note, save, reload, confirm persistence.
+6. `/notes/matchups/templar/mongols` — write a matchup note. Confirm it shows on the matchup grid (`/notes/matchups`) with a "has notes" indicator on the (templar, mongols) cell.
+7. `/notes/maps/<one-of-your-maps>` — same.
+8. Open a 1v1 game detail page, attach a per-game note, confirm it survives a reload.
+9. Restart server (`pnpm dev`), confirm all data persists from `~/.aoe4-almanac/data.db`.
+10. Run `pnpm db:audit-civ-slugs` — confirm zero unknown slugs (or commit the aliases it surfaces).
+11. `pnpm lint` (oxlint) and `pnpm fmt` (oxfmt) both clean.
 
 ---
 
@@ -254,6 +261,7 @@ End-to-end smoke once landed:
 - [x] `/me`, `/me/link-aoe4world` (POST/DELETE), `/me/sync-now`
 - [x] `/civs` list + `/civs/:slug`
 - [x] `/notes/{civs,matchups,maps,games}/...` GET + PUT upsert
+- [x] `POST /games` (manual entry, optionally with opponent + first game note)
 - [x] `/aoe4world/search` proxy
 
 ### Step 6 — `apps/web` scaffold ✓
@@ -272,6 +280,7 @@ End-to-end smoke once landed:
 ### Step 8 — Games UI ✓
 - [x] `/games` table with filter dropdowns (civ, opp, result, kind)
 - [x] `/games/$gameId` detail: participants table, rating delta, link to aoe4world, per-game markdown notes
+- [x] `/games/new` manual entry form (started_at, civs, result, opponent, map, duration, kind, notes)
 
 ### Step 9 — Civ + matchup notes UI ✓
 - [x] `/notes/civs` index — base civs with variants nested under parent, "has notes" indicator
@@ -305,6 +314,7 @@ Open http://localhost:5173, go to Settings → search your aoe4world name → Li
 - ✓ `/api/v1/civs` returns all 23 civs with correct variant→parent mapping (templar→french, etc.).
 - ✓ `PUT /api/v1/notes/civs/templar` + `GET` round-trip.
 - ✓ `PUT /api/v1/notes/matchups/templar/mongols` + `GET` round-trip.
+- ✓ `POST /api/v1/games` (manual KT-vs-Mongols custom game) creates row, participants, and game note transactionally.
 - ✓ `/api/v1/aoe4world/search?q=Beasty` returns live results.
 - ✓ `POST /api/v1/me/link-aoe4world` accepts profile_id and kicks off backfill.
 - ✓ Vite serves index.html; route bundles compile; full `vite build` succeeds.
@@ -318,7 +328,7 @@ Backed out the short-form aoe4world slugs (`templar`, `zhuxi`, `hre`, …) and a
 - [x] `scripts/canonicalize-civ-slugs.ts`: one-off migration that rewrites short → canonical in every table.
 - [x] `apps/web/src/lib/civNames.ts`: `useCivNames` hook; reads from `/civs` query, falls back to shared `prettyCivName`.
 - [x] Web UI: matchup grid, recent essays, dashboard quick-links, and matchup editor headline all display names rather than slugs.
-- [x] `const TEMPLAR = "templar"` → `KNIGHTS_TEMPLAR` constant.
+- [x] `const TEMPLAR = "templar"` → `KNIGHTS_TEMPLAR` constant; default civ in `/games/new` uses the constant.
 
 To roll out on an existing DB:
 ```
