@@ -291,3 +291,76 @@ pub fn game_note_put(state: State<'_, Db>, game_id: i64, body_md: String) -> App
     )?;
     Ok(())
 }
+
+// --- bulk export ---
+
+#[tauri::command]
+pub fn notes_export_all(state: State<'_, Db>) -> AppResult<serde_json::Value> {
+    let conn = state.0.lock().expect("db poisoned");
+    let user_id = db::local_user_id(&conn)?;
+
+    let mut civ_stmt = conn.prepare(
+        "SELECT civ_slug, body_md, created_at, updated_at FROM civ_notes WHERE user_id = ?1",
+    )?;
+    let civ: Vec<serde_json::Value> = civ_stmt
+        .query_map(params![user_id], |r| {
+            Ok(serde_json::json!({
+                "civ_slug": r.get::<_, String>(0)?,
+                "body_md": r.get::<_, String>(1)?,
+                "created_at": r.get::<_, i64>(2)?,
+                "updated_at": r.get::<_, i64>(3)?,
+            }))
+        })?
+        .collect::<Result<_, _>>()?;
+
+    let mut mu_stmt = conn.prepare(
+        "SELECT my_civ_slug, opp_civ_slug, body_md, created_at, updated_at FROM matchup_notes
+         WHERE user_id = ?1",
+    )?;
+    let matchup: Vec<serde_json::Value> = mu_stmt
+        .query_map(params![user_id], |r| {
+            Ok(serde_json::json!({
+                "my_civ_slug": r.get::<_, String>(0)?,
+                "opp_civ_slug": r.get::<_, String>(1)?,
+                "body_md": r.get::<_, String>(2)?,
+                "created_at": r.get::<_, i64>(3)?,
+                "updated_at": r.get::<_, i64>(4)?,
+            }))
+        })?
+        .collect::<Result<_, _>>()?;
+
+    let mut map_stmt = conn.prepare(
+        "SELECT map_slug, body_md, created_at, updated_at FROM map_notes WHERE user_id = ?1",
+    )?;
+    let map: Vec<serde_json::Value> = map_stmt
+        .query_map(params![user_id], |r| {
+            Ok(serde_json::json!({
+                "map_slug": r.get::<_, String>(0)?,
+                "body_md": r.get::<_, String>(1)?,
+                "created_at": r.get::<_, i64>(2)?,
+                "updated_at": r.get::<_, i64>(3)?,
+            }))
+        })?
+        .collect::<Result<_, _>>()?;
+
+    let mut game_stmt = conn.prepare(
+        "SELECT game_id, body_md, created_at, updated_at FROM game_notes WHERE user_id = ?1",
+    )?;
+    let game: Vec<serde_json::Value> = game_stmt
+        .query_map(params![user_id], |r| {
+            Ok(serde_json::json!({
+                "game_id": r.get::<_, i64>(0)?,
+                "body_md": r.get::<_, String>(1)?,
+                "created_at": r.get::<_, i64>(2)?,
+                "updated_at": r.get::<_, i64>(3)?,
+            }))
+        })?
+        .collect::<Result<_, _>>()?;
+
+    Ok(serde_json::json!({
+        "civ": civ,
+        "matchup": matchup,
+        "map": map,
+        "game": game,
+    }))
+}

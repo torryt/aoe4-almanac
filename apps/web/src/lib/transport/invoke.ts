@@ -145,6 +145,8 @@ const routes: Array<{ method: HttpMethod; pattern: RegExp; resolve: Resolver }> 
       args: { gameId: Number(m[1]!), bodyMd: String((body as { body_md?: string })?.body_md ?? "") },
     }),
   },
+  // notes - export
+  { method: "GET", pattern: /^\/notes\/export$/, resolve: () => ({ cmd: "notes_export_all", args: {} }) },
   // opponents
   {
     method: "GET",
